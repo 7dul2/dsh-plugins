@@ -45,14 +45,18 @@ window.__ModuleLoader__.load({
 			dialogTitle: "本次会话计费",
 			pillTitle: "{cost} · {requests} 次请求",
 			sankeyRequests: "{count} 次请求",
-			summaryTotal: "合计 {cost}",
+			tokenCount: "{count} tok",
 			summaryRequests: "{count} 次请求",
 			tokensLine: "输入 {input} · 缓存读 {read} · 缓存写 {write} · 输出 {out}",
 			unpriced: "未配置价格：{models}",
 			modelRequests: "{count} 次",
 			modelLine: "{requests} · 输入 {input} · 缓存读 {read} · 缓存写 {write} · 输出 {out}",
 			peakLine: "高峰 {peak} · 空闲 {offPeak}",
-			close: "关闭",
+			requestCount: "请求次数",
+			inputTokens: "未缓存输入",
+			cacheReadTokens: "缓存读取",
+			cacheWriteTokens: "缓存写入",
+			outputTokens: "输出",
 			totalCost: "总计 {cost}",
 			sessionCount: "{count} 个会话",
 			groupUntitled: "未分组",
@@ -71,14 +75,18 @@ window.__ModuleLoader__.load({
 			dialogTitle: "Session billing",
 			pillTitle: "{cost} · {requests} requests",
 			sankeyRequests: "{count} requests",
-			summaryTotal: "Total {cost}",
+			tokenCount: "{count} tok",
 			summaryRequests: "{count} requests",
 			tokensLine: "Input {input} · cache read {read} · cache write {write} · output {out}",
 			unpriced: "No price configured: {models}",
 			modelRequests: "{count}",
 			modelLine: "{requests} · input {input} · cache read {read} · cache write {write} · output {out}",
 			peakLine: "Peak {peak} · off-peak {offPeak}",
-			close: "Close",
+			requestCount: "Requests",
+			inputTokens: "Uncached input",
+			cacheReadTokens: "Cached input",
+			cacheWriteTokens: "Cache write",
+			outputTokens: "Output",
 			totalCost: "Total {cost}",
 			sessionCount: "{count} sessions",
 			groupUntitled: "Ungrouped",
@@ -409,12 +417,6 @@ window.__ModuleLoader__.load({
 				react.createElement("path", { d: "M8 4.6v6.8M6.2 6.4h3.6M6.2 9.6h3.6", stroke: "currentColor", strokeWidth: 1.1, strokeLinecap: "round" }),
 			);
 		}
-		/** Decorative close glyph for the popover. */
-		function CloseIcon() {
-			return react.createElement("svg", { width: 12, height: 12, viewBox: "0 0 16 16", fill: "none", "aria-hidden": true },
-				react.createElement("path", { d: "M4 4l8 8M12 4l-8 8", stroke: "currentColor", strokeWidth: 1.4, strokeLinecap: "round" }),
-			);
-		}
 		const anchorStyle = { position: "relative", display: "inline-flex", alignItems: "center" };
 		const pillStyle = {
 			display: "inline-flex",
@@ -436,44 +438,39 @@ window.__ModuleLoader__.load({
 		const backdropStyle = {
 			position: "fixed",
 			inset: 0,
-			zIndex: 40,
+			zIndex: 1099,
 			background: "transparent",
 		};
 		const panelStyle = {
 			position: "absolute",
 			bottom: "calc(100% + 8px)",
 			left: 0,
-			zIndex: 41,
-			width: 372,
-			maxWidth: "calc(100vw - 32px)",
+			zIndex: 1100,
+			width: "max-content",
+			minWidth: "min(300px, calc(100vw - 24px))",
+			maxWidth: "min(440px, calc(100vw - 24px))",
 			maxHeight: 460,
 			overflowY: "auto",
 			boxSizing: "border-box",
 			display: "block",
-			padding: 12,
+			padding: 16,
+			border: 0,
 			borderRadius: 12,
-			border: "1px solid var(--dsw-alias-border-l3)",
-			background: "var(--dsw-alias-bg-overlay)",
-			boxShadow: "var(--dsw-shadow-lv2)",
-			color: "var(--dsw-alias-label-primary)",
-			textAlign: "left",
+			background: "var(--dsw-specific-menu)",
+			"--dsw-elevation-stroke-color": "var(--dsw-alias-border-l1)",
+			boxShadow: "var(--dsw-elevation-prominent)",
+			fontSize: 12,
+			lineHeight: "18px",
+			color: "var(--dsw-alias-label-secondary)",
+			cursor: "default",
 		};
-		const panelHeadStyle = { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 };
-		const panelTitleStyle = { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, lineHeight: "20px" };
-		const ghostButtonStyle = {
-			flex: "none",
-			display: "inline-flex",
-			alignItems: "center",
-			justifyContent: "center",
-			width: 22,
-			height: 22,
-			border: "none",
-			borderRadius: 6,
-			background: "transparent",
-			color: "var(--dsw-alias-label-tertiary)",
-			cursor: "pointer",
-		};
-		const summaryStyle = { display: "flex", flexDirection: "column", gap: 2, padding: "0 0 8px" };
+		const panelHeadStyle = { display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 8, color: "var(--dsw-alias-label-primary)", fontWeight: 500 };
+		const panelTitleLabelStyle = { display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 };
+		const panelTitleValueStyle = { fontVariantNumeric: "tabular-nums" };
+		const panelTitleRuleStyle = { marginBottom: 10, borderTop: "0.5px solid var(--dsw-alias-border-l2)" };
+		const summaryStyle = { display: "grid", gridTemplateColumns: "minmax(76px, auto) minmax(0, 1fr)", gap: "6px 16px", margin: 0, color: "var(--dsw-alias-label-tertiary)" };
+		const detailLabelStyle = { minWidth: 0, margin: 0 };
+		const detailValueStyle = { minWidth: 0, margin: 0, color: "var(--dsw-alias-label-secondary)", fontVariantNumeric: "tabular-nums", textAlign: "right" };
 		const summaryMainStyle = { fontSize: 18, fontWeight: 600, lineHeight: "26px" };
 		const mutedStyle = { fontSize: 11, lineHeight: "16px", color: "var(--dsw-alias-label-tertiary)" };
 		const warnStyle = { fontSize: 11, lineHeight: "16px", color: "var(--dsw-static-amber-500)" };
@@ -513,6 +510,14 @@ window.__ModuleLoader__.load({
 				setStatsDock(document.querySelector("[data-composer-stats]"));
 				return undefined;
 			}, [sessionId]);
+			react.useEffect(() => {
+				if (!open || typeof document === "undefined") return undefined;
+				const onKeyDown = (event) => {
+					if (event.key === "Escape") setOpen(false);
+				};
+				document.addEventListener("keydown", onKeyDown);
+				return () => { document.removeEventListener("keydown", onKeyDown); };
+			}, [open]);
 			const ready = usageSnapshot.status === "ready" && costSnapshot.status === "ready";
 			const view = react.useMemo(() => {
 				if (!ready) return null;
@@ -552,27 +557,27 @@ window.__ModuleLoader__.load({
 					react.createElement("span", null, costText),
 				),
 				open ? react.createElement("span", { style: backdropStyle, onClick: () => { setOpen(false); } }) : null,
-				open ? react.createElement("span", { style: panelStyle, role: "dialog", "aria-label": t("dialogTitle") },
-					react.createElement("span", { style: panelHeadStyle },
-						react.createElement("span", { style: panelTitleStyle }, t("dialogTitle")),
-						react.createElement("button", {
-							type: "button",
-							style: ghostButtonStyle,
-							"aria-label": t("close"),
-							onClick: () => { setOpen(false); },
-						}, react.createElement(CloseIcon)),
+				open ? react.createElement("div", { style: panelStyle, role: "dialog", "aria-label": t("dialogTitle") },
+					react.createElement("div", { style: panelHeadStyle },
+						react.createElement("span", { style: panelTitleLabelStyle }, react.createElement(CoinIcon), t("dialogTitle")),
+						react.createElement("span", { style: panelTitleValueStyle }, costText),
 					),
-					react.createElement("span", { style: summaryStyle },
-						react.createElement("span", { style: summaryMainStyle }, t("summaryTotal", { cost: costText })),
-						react.createElement("span", { style: mutedStyle }, t("summaryRequests", { count: formatCount(totals.requests) })),
-						react.createElement("span", { style: mutedStyle }, t("tokensLine", {
-							input: formatTokens(totals.input),
-							read: formatTokens(totals.cacheRead),
-							write: formatTokens(totals.cacheWrite),
-							out: formatTokens(totals.output),
-						})),
-						unpriced.length > 0 ? react.createElement("span", { style: warnStyle }, t("unpriced", { models: unpriced.join(", ") })) : null,
-					),
+					react.createElement("div", { style: panelTitleRuleStyle, "aria-hidden": true }),
+					react.createElement("dl", { style: summaryStyle, "data-cost-details": true },
+						react.createElement("dt", { style: detailLabelStyle }, t("requestCount")),
+						react.createElement("dd", { style: detailValueStyle }, formatCount(totals.requests)),
+						react.createElement("dt", { style: detailLabelStyle }, t("inputTokens")),
+						react.createElement("dd", { style: detailValueStyle }, t("tokenCount", { count: formatTokens(totals.input) })),
+						react.createElement("dt", { style: detailLabelStyle }, t("cacheReadTokens")),
+						react.createElement("dd", { style: detailValueStyle }, t("tokenCount", { count: formatTokens(totals.cacheRead) })),
+					totals.cacheWrite !== 0 ? react.createElement(react.Fragment, null,
+						react.createElement("dt", { style: detailLabelStyle }, t("cacheWriteTokens")),
+						react.createElement("dd", { style: detailValueStyle }, t("tokenCount", { count: formatTokens(totals.cacheWrite) })),
+					) : null,
+					react.createElement("dt", { style: detailLabelStyle }, t("outputTokens")),
+					react.createElement("dd", { style: detailValueStyle }, t("tokenCount", { count: formatTokens(totals.output) })),
+				),
+				unpriced.length > 0 ? react.createElement("span", { style: { ...warnStyle, display: "block", marginTop: 10 } }, t("unpriced", { models: unpriced.join(", ") })) : null,
 					react.createElement(Sankey, { rows, totalRequests: totals.requests, currency, tag, t }),
 					react.createElement("span", { style: { display: "block", marginTop: 6 } }, rows.map((row, index) => {
 						const amount = row.cost === null ? EMDASH : formatMoney(row.cost, currency, tag);

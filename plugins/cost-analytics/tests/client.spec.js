@@ -55,7 +55,11 @@ test('portals the billing pill into the host token-usage row with matching pill 
     createPortal: (node, target) => ({ type: 'portal', node, target }),
   }
   vm.runInNewContext(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'), {
-    document: { querySelector: selector => selector === '[data-composer-stats]' ? dock : null },
+    document: {
+      querySelector: selector => selector === '[data-composer-stats]' ? dock : null,
+      addEventListener() {},
+      removeEventListener() {},
+    },
     window: { __ModuleLoader__: { load(value) { entry = value } } },
   })
   const client = entry.factory(name => {
@@ -122,4 +126,36 @@ test('portals the billing pill into the host token-usage row with matching pill 
     whiteSpace: 'nowrap',
     cursor: 'pointer',
   })
+
+  button.props.onClick()
+  const openTree = renderRow()
+  const panel = openTree.node.children[2]
+  assert.equal(panel.type, 'div')
+  assert.deepEqual(JSON.parse(JSON.stringify(panel.props.style)), {
+    position: 'absolute',
+    bottom: 'calc(100% + 8px)',
+    left: 0,
+    zIndex: 1100,
+    width: 'max-content',
+    minWidth: 'min(300px, calc(100vw - 24px))',
+    maxWidth: 'min(440px, calc(100vw - 24px))',
+    maxHeight: 460,
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+    display: 'block',
+    padding: 16,
+    border: 0,
+    borderRadius: 12,
+    background: 'var(--dsw-specific-menu)',
+    '--dsw-elevation-stroke-color': 'var(--dsw-alias-border-l1)',
+    boxShadow: 'var(--dsw-elevation-prominent)',
+    fontSize: 12,
+    lineHeight: '18px',
+    color: 'var(--dsw-alias-label-secondary)',
+    cursor: 'default',
+  })
+  assert.equal(panel.children[0].children[0].children[1], '本次会话计费')
+  assert.equal(panel.children[0].children[1].children[0], '¥1.20')
+  assert.equal(panel.children[1].props['aria-hidden'], true)
+  assert.equal(panel.children[2].type, 'dl')
 })
