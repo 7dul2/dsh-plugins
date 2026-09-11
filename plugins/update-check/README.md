@@ -1,6 +1,6 @@
 # @deepseek-ai/dsh-client-ui-update-check
 
-Web 侧边栏发现新版本时显示可点击的更新按钮；设置 → 通用设置同时提供当前版本、可用版本和“立即检查”。成功检查会清除旧的安装失败提示；失败时会保留 pnpm 的诊断摘要。非托管启动的 Harness 安装后需要手动重启，托管启动器会自动重启。
+Web 侧边栏只有发现新版本时才显示可点击的更新按钮；设置 → 通用设置同时提供当前版本、可用版本和“立即检查”。没有新版本时不会显示红点，旧的安装失败状态只在设置里保留诊断。成功检查会清除旧的安装失败提示；失败时会保留 pnpm 的诊断摘要。非托管启动的 Harness 安装后需要手动重启，托管启动器会自动重启。
 
 A local DeepSeek Harness plugin that keeps dsh current: the Web GUI shows a
 small badge at the right edge of the sidebar footer row (above the settings

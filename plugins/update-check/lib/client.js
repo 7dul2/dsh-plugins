@@ -249,7 +249,10 @@ window.__ModuleLoader__.load({
 		function UpdateBadge(props) {
 			const { wide, t, controller } = props;
 			const state = react.useSyncExternalStore(controller.subscribe, controller.getSnapshot);
-			if (state.target === undefined && state.phase === "idle") return null;
+			// A failed install without a newer target is stale status from an older
+			// attempt, not a notification. Keep the detailed error in General
+			// settings, but never turn it into a red sidebar dot.
+			if (state.target === undefined && state.phase !== "waiting") return null;
 			const title = state.phase === "waiting"
 				? t("updating", { version: state.target ?? "" })
 				: state.phase === "failed"
