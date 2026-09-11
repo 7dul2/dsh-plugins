@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { appendMounts } from '../scripts/install.mjs'
+import { appendMounts, migrateLegacyFaviconMount } from '../scripts/install.mjs'
 const mount = { id: 'community-model-retry', name: '@deepseek-ai/dsh-client-ui-model-retry' }
 test('preserves comments and other configuration, and is idempotent', () => {
  const before = '# user comment\n- id: unrelated\n  disabled: true\n'
@@ -15,6 +15,15 @@ test('rejects conflicting ids and alternate existing ids for the same package', 
 test('refuses invalid patch documents', () => {
  assert.throws(() => appendMounts('not: an array', [mount]), /array/)
  assert.throws(() => appendMounts('[', [mount]))
+})
+
+test('migrates the legacy single-file favicon mount while preserving comments', () => {
+ const before = '# icon comment\n- insert:\n    # keep this note\n    - id: custom-favicon\n      name: ./favicon-plugin.mjs\n'
+ const mounts = [{ id: 'custom-favicon', name: '@deepseek-ai/dsh-client-ui-favicon' }]
+ const migrated = migrateLegacyFaviconMount(before, mounts)
+ assert.ok(migrated.includes('# keep this note'))
+ assert.ok(migrated.includes('name: "@deepseek-ai/dsh-client-ui-favicon"'))
+ assert.equal(migrateLegacyFaviconMount(migrated, mounts), migrated)
 })
 
 test('CLI installs and mounts into an isolated profile without duplicate entries', async () => {

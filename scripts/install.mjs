@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import YAML from 'yaml'
 
-export const plugins = ['model-retry', 'plugin-dev', 'plugin-manager', 'archived-chats', 'cost-analytics', 'update-check']
+export const plugins = ['favicon', 'model-retry', 'plugin-dev', 'plugin-manager', 'archived-chats', 'cost-analytics', 'update-check']
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** Preserve existing YAML and refuse collisions instead of replacing user config. */
@@ -25,6 +25,21 @@ export function appendMounts(original, mounts) {
   const text = original.trimEnd() + '\n\n' + YAML.stringify([{ insert: additions }])
   YAML.parse(text)
   return text
+}
+
+/** Migrate the original single-file favicon mount without rewriting user comments. */
+export function migrateLegacyFaviconMount(original, mounts) {
+  if (!mounts.some(mount => mount.id === 'custom-favicon')) return original
+  const rows = YAML.parse(original) ?? []
+  if (!Array.isArray(rows)) throw new Error('Profile patch must be a YAML array')
+  const legacy = rows.flatMap(row => row?.insert ?? []).filter(row => row?.id === 'custom-favicon' && row?.name === './favicon-plugin.mjs')
+  if (legacy.length === 0) return original
+  if (legacy.length > 1) throw new Error('Conflicting legacy custom-favicon mounts')
+  const matches = [...original.matchAll(/^(\s*name:\s*)\.\/favicon-plugin\.mjs\s*$/gm)]
+  if (matches.length !== 1) throw new Error('Could not safely migrate the legacy custom-favicon mount')
+  const match = matches[0]
+  const packageName = mounts.find(mount => mount.id === 'custom-favicon').name
+  return original.slice(0, match.index) + `${match[1]}${JSON.stringify(packageName)}` + original.slice(match.index + match[0].length)
 }
 
 async function main(args) {
@@ -47,9 +62,9 @@ async function main(args) {
     const before = await readPatch()
     const mounts = await Promise.all(selected.map(async id => {
       const pkg = JSON.parse(await readFile(join(root, 'plugins', id, 'package.json'), 'utf8'))
-      return { id: `community-${id}`, name: pkg.name }
+      return { id: id === 'favicon' ? 'custom-favicon' : `community-${id}`, name: pkg.name }
     }))
-    const after = appendMounts(before, mounts)
+    const after = appendMounts(migrateLegacyFaviconMount(before, mounts), mounts)
     const result = spawnSync(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', ['--dir', profile, 'add', '--config.auto-install-peers=true', ...selected.map(id => `file:${join(root, 'plugins', id)}`)], { stdio: 'inherit' })
     if (result.error) throw result.error
     if (result.status !== 0) throw new Error('Dependency installation failed; patch was not changed')

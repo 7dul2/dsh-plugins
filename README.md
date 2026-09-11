@@ -6,6 +6,7 @@ DeepSeek Harness 社区插件合集：一个仓库，每个插件独立安装与
 
 | 名称 | 功能 |
 | --- | --- |
+| `favicon` | 在通用设置选择本机图片作为浏览器标签图标 |
 | `model-retry` | 在通用设置修改模型请求重试次数 |
 | `plugin-dev` | `/plugin-dev` 加载 DSH 插件开发教程，可附带需求 |
 | `plugin-manager` | 查看、安装和启用/禁用本地插件 |
@@ -44,7 +45,7 @@ node scripts/install.mjs plugin-dev --profile /absolute/path/to/profile
 
 运行 `git pull --ff-only`，然后重新执行相应安装命令。正在使用插件时，协调好会话再重启。各插件的 `lib/*.js` 是本地插件现有的可编辑入口，浏览器文件使用 Harness lazy factory 格式；本仓库不把它们假定为可随意替换的普通 ES module。
 
-根目录 `npm test` 验证安装器补丁合并，`npm run scan` 检查常见凭证模式和个人路径。插件 tests 是保留的行为验证，运行前需要补齐与 Harness 同版本的依赖；其中 model-retry 的运行时测试还依赖本地 Harness runtime 安装布局。不能把根目录测试通过理解为六个插件的端到端测试全部通过。
+根目录 `npm test` 验证安装器补丁合并，`npm run scan` 检查常见凭证模式和个人路径。插件 tests 是保留的行为验证，运行前需要补齐与 Harness 同版本的依赖；其中 model-retry 的运行时测试还依赖本地 Harness runtime 安装布局。不能把根目录测试通过理解为七个插件的端到端测试全部通过。
 
 ## 隐私与授权
 
