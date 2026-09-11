@@ -59,6 +59,14 @@ window.__ModuleLoader__.load({
 			updating: "正在更新到 {version}…",
 			failed: "更新失败：{error}；点击重试",
 			label: "更新",
+			settingsTitle: "检查更新",
+			settingsDescription: "检查 DeepSeek Harness 的新版本并查看当前版本。",
+			currentVersion: "当前版本 {version}",
+			availableVersion: "发现新版本 {version}",
+			checkNow: "立即检查",
+			checking: "检查中…",
+			latest: "已是最新版本",
+			manualRestart: "更新已安装，请手动重启 Harness。",
 		};
 		const en = {
 			tip: "New version {version} available — click to update",
@@ -66,6 +74,14 @@ window.__ModuleLoader__.load({
 			updating: "Updating to {version}…",
 			failed: "Update failed: {error}; click to retry",
 			label: "Update",
+			settingsTitle: "Check for updates",
+			settingsDescription: "Check for a new DeepSeek Harness version and view the current version.",
+			currentVersion: "Current version {version}",
+			availableVersion: "New version {version} available",
+			checkNow: "Check now",
+			checking: "Checking…",
+			latest: "You're up to date",
+			manualRestart: "Update installed. Restart Harness manually.",
 		};
 		function newNonce() {
 			const cryptoRef = globalThis.crypto;
@@ -125,7 +141,7 @@ window.__ModuleLoader__.load({
 				}
 				const tag = channelTag(value);
 				const target = tag !== undefined && compareVersions(tag, value.currentVersion) > 0 ? tag : undefined;
-				setState({ target, phase, notice, canRestart: canUpdate });
+				setState({ target, phase, notice, canRestart: canUpdate, currentVersion: value.currentVersion, availableVersion: tag });
 				restartPoll(value.clientCheckMinutes);
 			}
 			function restartPoll(minutes) {
@@ -182,6 +198,7 @@ window.__ModuleLoader__.load({
 					};
 				},
 				getSnapshot: () => state,
+				checkNow: fetchTags,
 				requestUpdate,
 				dispose: () => {
 					if (pollTimer !== undefined) clearInterval(pollTimer);
@@ -190,6 +207,35 @@ window.__ModuleLoader__.load({
 			};
 		}
 		const DOT_SIZE = 8;
+		/** Settings row showing the installed version and a manual registry check. */
+		function UpdateSettingsRow(props) {
+			const { t, controller } = props;
+			const state = react.useSyncExternalStore(controller.subscribe, controller.getSnapshot);
+			const [checking, setChecking] = react.useState(false);
+			const check = async () => {
+				if (checking) return;
+				setChecking(true);
+				try { await controller.checkNow(); } finally { setChecking(false); }
+			};
+			const current = state.currentVersion || "—";
+			const status = state.phase === "waiting"
+				? t("updating", { version: state.target ?? "" })
+				: state.phase === "failed"
+				? t("failed", { error: state.notice ?? "" })
+				: state.target !== undefined
+				? t("availableVersion", { version: state.target })
+				: t("latest");
+			const disabled = checking || state.phase === "waiting";
+			return react.createElement(
+				"div",
+				{ style: { display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: "0.5px solid var(--dsw-alias-border-l2)", color: "var(--dsw-alias-label-primary)" } },
+				react.createElement("div", { style: { flex: 1, minWidth: 0 } },
+					react.createElement("div", { style: { fontSize: 14, lineHeight: "22px" } }, t("settingsTitle")),
+					react.createElement("div", { style: { fontSize: 12, lineHeight: "18px", color: "var(--dsw-alias-label-tertiary)" } }, t("settingsDescription")),
+					react.createElement("div", { style: { fontSize: 12, lineHeight: "18px", color: "var(--dsw-alias-label-secondary)" } }, t("currentVersion", { version: current }), " · ", status)),
+				react.createElement("button", { type: "button", disabled, onClick: () => { void check(); }, style: { border: "none", borderRadius: 18, padding: "8px 14px", background: "var(--dsw-alias-bg-module-platform)", color: "inherit", font: "inherit", cursor: disabled ? "default" : "pointer", whiteSpace: "nowrap" } }, checking ? t("checking") : t("checkNow")),
+			);
+		}
 		/**
 		 * The badge itself. Rendered inside `.footerActions` (full-width flex row
 		 * above the settings entry): right-aligned in the wide sidebar, centered by
@@ -269,6 +315,13 @@ window.__ModuleLoader__.load({
 				locale: NS,
 				inject: () => ({ controller }),
 			}, UpdateBadge));
+			ctx.slots.inject("settings.general.item", () => ctx.slots.register({
+				name: "settings.general.item",
+				id: "update-check",
+				order: 110,
+				locale: NS,
+				inject: () => ({ controller }),
+			}, UpdateSettingsRow));
 		}
 		/**
 		 * Required services: slots for the footer action, locale for the

@@ -1,5 +1,7 @@
 # @deepseek-ai/dsh-client-ui-update-check
 
+Web 侧边栏发现新版本时显示可点击的更新按钮；设置 → 通用设置同时提供当前版本、可用版本和“立即检查”。非托管启动的 Harness 安装后需要手动重启，托管启动器会自动重启。
+
 A local DeepSeek Harness plugin that keeps dsh current: the Web GUI shows a
 small badge at the right edge of the sidebar footer row (above the settings
 entry) **only while a newer dsh version exists**, and clicking it downloads,
