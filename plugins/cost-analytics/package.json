@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-cost-analytics",
-  "description": "Web billing views over the host-owned cost-analytics settings rollup: a bundled d3-sankey composer-dock chart (model -> estimated cost) beside the token-usage pills, plus a settings section with per-project/session consumption",
+  "description": "Web billing views over the host-owned cost-analytics settings rollup: a bundled d3-sankey composer-dock chart (model -> requests -> estimated cost) beside the token-usage pills, plus a settings section with per-project/session consumption",
   "version": "0.1.5-rc.1",
   "private": true,
   "type": "module",

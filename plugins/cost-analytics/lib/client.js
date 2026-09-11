@@ -284,13 +284,13 @@ window.__ModuleLoader__.load({
 		const svgText = { fontSize: 10, fill: "var(--dsw-alias-label-secondary)" };
 		const sankeyStyle = { width: "100%", height: "auto", display: "block", overflow: "visible" };
 		/**
-		 * Two-column flow diagram laid out by the bundled d3-sankey algorithm.
+		 * Three-column flow diagram laid out by the bundled d3-sankey algorithm.
 		 * Display weights use a logarithmic cost scale so zero-priced and unpriced
 		 * rows remain visible while labels retain their actual amounts.
-		 * @param props - priced model rows and formatting seats.
+		 * @param props - priced model rows, request total, and formatting seats.
 		 */
 		function Sankey(props) {
-			const { rows, currency, tag, t } = props;
+			const { rows, totalRequests, currency, tag, t } = props;
 			const width = 520;
 			const height = Math.max(132, rows.length * 48 + 24);
 			const leftX = 132;
@@ -304,20 +304,20 @@ window.__ModuleLoader__.load({
 			}));
 			const nodes = [
 				...graphRows.map((item) => ({ id: `model:${item.index}`, side: "left", order: item.index, label: item.label })),
+				{ id: "requests", side: "middle", order: -1, label: t("sankeyRequests", { count: formatCount(totalRequests) }) },
 				...graphRows.map((item) => ({ id: `cost:${item.index}`, side: "right", order: item.index, label: item.amount })),
 			];
 			const links = graphRows.map((item) => ({
-				source: `model:${item.index}`,
-				target: `cost:${item.index}`,
-				value: item.weight,
-				rowIndex: item.index,
-			}));
+				source: `model:${item.index}`, target: "requests", value: item.weight, rowIndex: item.index,
+			})).concat(graphRows.map((item) => ({
+				source: "requests", target: `cost:${item.index}`, value: item.weight, rowIndex: item.index,
+			})));
 			const graph = d3Sankey.sankey()
 				.nodeId((node) => node.id)
 				.nodeWidth(12)
 				.nodePadding(14)
 				.nodeSort((left, right) => left.order - right.order)
-				.nodeAlign((node) => node.id.startsWith("model:") ? 0 : 1)
+				.nodeAlign((node) => node.id.startsWith("model:") ? 0 : node.id === "requests" ? 1 : 2)
 				.extent([[leftX, 18], [rightX, height - 8]])({ nodes, links });
 			const children = [];
 			for (const link of graph.links) {
@@ -335,8 +335,9 @@ window.__ModuleLoader__.load({
 				}, react.createElement("title", null, `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })} · ${item.amount}`)));
 			}
 			for (const node of graph.nodes) {
-				const item = graphRows[node.order];
-				const color = MODEL_COLORS[node.order % MODEL_COLORS.length];
+				const isRequests = node.id === "requests";
+				const item = isRequests ? null : graphRows[node.order];
+				const color = isRequests ? "var(--dsw-alias-bg-layer-3)" : MODEL_COLORS[node.order % MODEL_COLORS.length];
 				const centerY = (node.y0 + node.y1) / 2;
 				children.push(react.createElement("rect", {
 					key: node.id,
@@ -346,14 +347,14 @@ window.__ModuleLoader__.load({
 					height: Math.max(1, node.y1 - node.y0),
 					rx: 3,
 					fill: color,
-				}, react.createElement("title", null, node.side === "left"
-					? `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })}`
+				}, react.createElement("title", null, isRequests
+					? node.label
 					: `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })}`)));
 				children.push(react.createElement("text", {
 					key: `${node.id}-label`,
-					x: node.side === "left" ? node.x0 - 8 : node.x1 + 8,
-					y: centerY + 3,
-					textAnchor: node.side === "left" ? "end" : "start",
+					x: isRequests ? (node.x0 + node.x1) / 2 : node.side === "left" ? node.x0 - 8 : node.x1 + 8,
+					y: isRequests ? node.y0 - 6 : centerY + 3,
+					textAnchor: isRequests ? "middle" : node.side === "left" ? "end" : "start",
 					style: svgText,
 				}, truncate(node.label, 20)));
 			}

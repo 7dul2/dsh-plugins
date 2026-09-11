@@ -176,8 +176,8 @@ test('portals the billing pill into the host token-usage row with matching pill 
     tag: 'zh-CN',
     t,
   })
-  assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 3)
-  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 6)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 6)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 7)
   const labels = expandedChart.children
     .filter(child => child?.type === 'text')
     .map(child => child.children[0])
