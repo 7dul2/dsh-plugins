@@ -24,6 +24,9 @@ import path from 'node:path'
 import { createRequire } from 'node:module'
 import z from '@deepseek-ai/schemastery'
 import { compareVersions } from './version.js'
+import { summarizeInstallFailure } from './diagnostics.js'
+
+export { summarizeInstallFailure } from './diagnostics.js'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'update-check'
@@ -216,7 +219,10 @@ export function apply(ctx, config) {
       log.warn('registry dist-tags for %s carry no %s tag: %j', config.packageName, channel, tags)
       return
     }
-    const changed = await writeFacts({ availableVersion: tagged })
+    const staleFailure = section?.installState === 'error'
+      ? { installState: 'idle', installError: '', installOutput: '' }
+      : {}
+    const changed = await writeFacts({ availableVersion: tagged, ...staleFailure })
     if (changed && compareVersions(tagged, ownVersion) > 0) {
       log.info('update available: %s (running %s)', tagged, ownVersion)
     }
@@ -256,7 +262,11 @@ export function apply(ctx, config) {
       }
       resolve(code === 0
         ? { ok: true }
-        : { ok: false, message: `${config.pnpmCommand} exited with code ${String(code)}`, output })
+        : {
+          ok: false,
+          message: `${config.pnpmCommand} exited with code ${String(code)}${summarizeInstallFailure(output) === '' ? '' : `: ${summarizeInstallFailure(output)}`}`,
+          output,
+        })
     })
   })
 

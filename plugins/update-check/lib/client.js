@@ -138,6 +138,10 @@ window.__ModuleLoader__.load({
 					// The host reset the transient state (fresh boot reconcile): the flow ended.
 					phase = "idle";
 					notice = undefined;
+				} else if (phase === "failed" && value.installError === "") {
+					// A successful manual check clears a stale install failure.
+					phase = "idle";
+					notice = undefined;
 				}
 				const tag = channelTag(value);
 				const target = tag !== undefined && compareVersions(tag, value.currentVersion) > 0 ? tag : undefined;
