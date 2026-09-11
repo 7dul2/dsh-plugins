@@ -5,6 +5,7 @@ window.__ModuleLoader__.load({
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react = require("react");
+		let reactDom = require("react-dom");
 		/**
 		 * Browser half of the cost-analytics plugin: a billing pill beside the
 		 * token-usage pill in the composer dock, and the "成本统计" settings
@@ -19,9 +20,10 @@ window.__ModuleLoader__.load({
 		 * view without a rescan.
 		 *
 		 * The dock pill renders only for the current session's own row; a
-		 * subagent session has no row of its own by construction. Its popover is
-		 * deliberately portal-free (this bundle may require React only), so it
-		 * anchors to the pill inside a relatively positioned wrapper.
+		 * subagent session has no row of its own by construction. When the host's
+		 * token-usage row is present, the pill is portaled into that row so both
+		 * controls share its flex layout. Its popover remains anchored to the pill
+		 * inside a relatively positioned wrapper.
 		 */
 		const NS = "costAnalytics";
 		const USAGE_NAMESPACE = "cost-analytics-usage";
@@ -417,16 +419,19 @@ window.__ModuleLoader__.load({
 		const pillStyle = {
 			display: "inline-flex",
 			alignItems: "center",
-			gap: 4,
+			gap: 6,
+			boxSizing: "border-box",
+			maxWidth: "100%",
+			padding: "1px 8px",
 			border: "none",
+			borderRadius: 24,
 			background: "transparent",
-			padding: "2px 4px",
-			borderRadius: 999,
+			color: "var(--dsw-alias-label-tertiary)",
+			font: "inherit",
+			fontVariantNumeric: "tabular-nums",
+			lineHeight: "inherit",
+			whiteSpace: "nowrap",
 			cursor: "pointer",
-			minHeight: 20,
-			fontSize: 12,
-			lineHeight: "18px",
-			color: "var(--dsw-alias-label-secondary)",
 		};
 		const backdropStyle = {
 			position: "fixed",
@@ -502,6 +507,12 @@ window.__ModuleLoader__.load({
 			const costSnapshot = useCost((snapshot) => snapshot);
 			const localeSnapshot = useLocale((snapshot) => snapshot);
 			const [open, setOpen] = react.useState(false);
+			const [statsDock, setStatsDock] = react.useState(null);
+			react.useEffect(() => {
+				if (typeof document === "undefined") return undefined;
+				setStatsDock(document.querySelector("[data-composer-stats]"));
+				return undefined;
+			}, [sessionId]);
 			const ready = usageSnapshot.status === "ready" && costSnapshot.status === "ready";
 			const view = react.useMemo(() => {
 				if (!ready) return null;
@@ -527,7 +538,7 @@ window.__ModuleLoader__.load({
 			const costText = totals.priced ? formatMoney(totals.cost, currency, tag) : EMDASH;
 			const label = t("pillTitle", { cost: costText, requests: formatCount(totals.requests) });
 			const unpriced = rows.filter((row) => row.cost === null).map((row) => row.model);
-			return react.createElement("span", { style: anchorStyle },
+			const content = react.createElement("span", { style: anchorStyle, "data-cost-billing-pill": true },
 				react.createElement("button", {
 					type: "button",
 					style: pillStyle,
@@ -589,6 +600,7 @@ window.__ModuleLoader__.load({
 					})),
 				) : null,
 			);
+			return statsDock === null ? content : reactDom.createPortal(content, statsDock);
 		}
 		const sectionStyle = { display: "flex", flexDirection: "column", gap: 16, minWidth: 0, color: "var(--dsw-alias-label-primary)" };
 		const sectionTitleStyle = { margin: 0, fontSize: 18, fontWeight: 600, lineHeight: "26px" };
