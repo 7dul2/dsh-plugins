@@ -301,9 +301,13 @@ export function apply(ctx, config) {
         })
         return
       }
-      await writeSection({ installState: 'restarting' })
-      log.info('update installed; requesting restart (exit 75)')
-      process.exit(75)
+      if (managedLauncher) {
+        await writeSection({ installState: 'restarting' })
+        log.info('update installed; requesting managed launcher restart (exit 75)')
+        process.exit(75)
+      }
+      await writeSection({ installState: 'idle', installError: '更新完成，请手动重启 Harness 以使用新版本。' })
+      log.info('update installed; managed launcher not present, manual restart required')
     } finally {
       installing = false
     }

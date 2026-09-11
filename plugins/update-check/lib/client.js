@@ -110,7 +110,7 @@ window.__ModuleLoader__.load({
 				const snapshot = scope.getSnapshot();
 				const value = snapshot.value;
 				if (value === undefined) return;
-				const canRestart = value.managedLauncher === true && snapshot.writable === true && snapshot.mode === "host";
+				const canUpdate = snapshot.writable === true && snapshot.mode === "host";
 				let phase = state.phase;
 				let notice = state.notice;
 				if (value.installState === "installing" || value.installState === "restarting") {
@@ -125,7 +125,7 @@ window.__ModuleLoader__.load({
 				}
 				const tag = channelTag(value);
 				const target = tag !== undefined && compareVersions(tag, value.currentVersion) > 0 ? tag : undefined;
-				setState({ target, phase, notice, canRestart });
+				setState({ target, phase, notice, canRestart: canUpdate });
 				restartPoll(value.clientCheckMinutes);
 			}
 			function restartPoll(minutes) {
@@ -240,7 +240,7 @@ window.__ModuleLoader__.load({
 					style: { width: DOT_SIZE, height: DOT_SIZE, borderRadius: 999, background: dotColor, flex: "none" },
 				}),
 				wide && state.target !== undefined
-					? react.createElement("span", { style: { fontSize: 11, lineHeight: "16px", whiteSpace: "nowrap" } }, state.target)
+					? react.createElement("span", { style: { fontSize: 12, lineHeight: "18px", whiteSpace: "nowrap" } }, `${t("label")} ${state.target}`)
 					: null,
 				wide && state.phase === "waiting"
 					? react.createElement("span", { style: { fontSize: 11, lineHeight: "16px", whiteSpace: "nowrap" } }, t("label"))

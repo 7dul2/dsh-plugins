@@ -80,3 +80,7 @@ lives there too so a failed install stays visible after the page reloads.
   byte-identical twin (keep in sync).
 - `bin/dsh-web` — managed launcher (restart loop over exit 75 / marker).
 - `bin/install-runtime.sh` — prepares `~/.dsh/runtime` for the launcher.
+
+### 更新按钮
+
+发现新版本时，侧边栏底部会显示可点击的“更新”按钮。按钮位于设置入口上方；展开侧边栏时显示版本号，收起时保留可点击的状态点。非托管启动也可以安装更新，但安装完成后需要手动重启 Harness；只有 `bin/dsh-web` 托管启动器会自动重启。
