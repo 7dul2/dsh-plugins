@@ -1,0 +1,37 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-plugin-manager",
+  "description": "Web settings tab for self-made dsh plugins: list patch-layer-mounted and workspace-discovered local plugins, toggle mount enablement through the profile patch file, open plugin folders, and install discovered folders into the profile",
+  "version": "0.1.5-rc.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "displayName": "插件管理",
+      "displayDescription": "「我的插件」设置栏目：列出补丁层挂载与工作区发现的本地插件，支持启用/禁用、打开文件夹与安装"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "yaml": "^2.9.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  }
+}

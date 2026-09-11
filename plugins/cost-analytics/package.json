@@ -1,0 +1,37 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-cost-analytics",
+  "description": "Web billing views over the host-owned cost-analytics settings rollup: a composer-dock Sankey (model -> requests -> cost) beside the token-usage pills, plus a settings section with per-project/session consumption",
+  "version": "0.1.5-rc.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "displayName": "费用分析",
+      "displayDescription": "基于 host 成本汇总的计费视图：模型→请求→费用桑基图与逐项目/会话消耗"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2"
+  }
+}

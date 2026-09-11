@@ -1,0 +1,54 @@
+#!/bin/bash
+# Managed launcher for dsh web: boots the harness from $DSH_RUNTIME_DIR and
+# restarts it when the update-check plugin asks for a restart. The restart
+# contract has two accepted signals, either of which continues the loop:
+#   - the harness exits with code 75 (EX_TEMPFAIL semantics), or
+#   - the restart marker file exists (the plugin writes it before exiting).
+# Any other exit (Ctrl-C included) stops the launcher, so the process stays
+# foreground-controllable.
+#
+# Environment:
+#   DSH_RUNTIME_DIR     runtime directory (default ~/.dsh/runtime)
+#   DSH_RESTART_MARKER  restart marker path (default ~/.dsh/update-restart-requested)
+#   DSH_WORKDIR         working directory handed to dsh (default ~/projects)
+
+set -u
+export DSH_UPDATE_MANAGED=1
+RUNTIME_DIR="${DSH_RUNTIME_DIR:-$HOME/.dsh/runtime}"
+MARKER="${DSH_RESTART_MARKER:-$HOME/.dsh/update-restart-requested}"
+BIN="$RUNTIME_DIR/node_modules/@deepseek-ai/dsh/lib/bin.js"
+FIRST_RUN=1
+
+if [ ! -f "$BIN" ]; then
+	echo "[dsh-web] runtime binary not found: $BIN" >&2
+	echo "[dsh-web] install it first with: bash \"$(cd "$(dirname "$0")" && pwd)/install-runtime.sh\"" >&2
+	exit 1
+fi
+
+while true; do
+	EXTRA=""
+	if [ "$FIRST_RUN" -eq 0 ]; then
+		EXTRA="--no-open"
+	fi
+	if [ -n "${DSH_WORKDIR:-}" ]; then
+		cd "$DSH_WORKDIR" || exit 1
+	else
+		cd "$HOME" 2>/dev/null || cd "$HOME" || exit 1
+	fi
+	node "$BIN" web $EXTRA
+	code=$?
+	FIRST_RUN=0
+	if [ -f "$MARKER" ]; then
+		rm -f "$MARKER"
+		echo "[dsh-web] 更新完成，重启..."
+		sleep 1
+		continue
+	fi
+	if [ "$code" -eq 75 ]; then
+		echo "[dsh-web] 重启请求"
+		sleep 1
+		continue
+	fi
+	echo "[dsh-web] dsh 已退出（code=${code}），启动器停止"
+	break
+done

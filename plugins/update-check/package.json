@@ -1,0 +1,40 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-update-check",
+  "description": "Web update badge for dsh: registry channel check in the browser, a sidebar footer badge shown only when a newer dsh exists, and the host half that installs the target version through pnpm and requests a managed restart",
+  "version": "0.1.5-rc.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ],
+      "displayName": "更新检查",
+      "displayDescription": "侧边栏新版本角标与一键更新：检查 registry 渠道，通过 pnpm 安装目标版本并请求托管重启"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/version.js",
+    "bin/dsh-web",
+    "bin/install-runtime.sh",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  }
+}

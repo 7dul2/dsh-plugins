@@ -1,0 +1,26 @@
+{
+  "name": "@deepseek-ai/dsh-command-plugin-dev",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "通过 /plugin-dev 向当前模型提供 DSH 独立插件开发与维护教程",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "GUIDE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.spec.js"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-commands": "0.1.5-rc.1"
+  },
+  "dsh": {},
+  "license": "MIT"
+}

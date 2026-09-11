@@ -1,0 +1,35 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-archived-chats",
+  "description": "Web settings section for archived chats: search plus workspace-grouped rows of the registry-global archive set, each with an unarchive action backed by the client Workspace projection",
+  "version": "0.1.5-rc.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-api-workspace-controller",
+        "@deepseek-ai/dsh-api-session-controller"
+      ],
+      "displayName": "已归档的聊天",
+      "displayDescription": "设置分区列出归档会话：搜索、按工作区分组，可一键取消归档"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  }
+}

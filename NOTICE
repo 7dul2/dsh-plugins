@@ -1,0 +1,4 @@
+This repository contains independently packaged community plugins for DeepSeek Harness.
+It is not an official DeepSeek release. Package names reflect the existing local plugin identifiers.
+DeepSeek Harness is copyright (c) 2026 DeepSeek and distributed under the MIT License.
+Relevant upstream license attribution is retained in LICENSE.
