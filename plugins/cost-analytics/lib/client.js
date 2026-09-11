@@ -6,6 +6,8 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react = require("react");
 		let reactDom = require("react-dom");
+		/** Bundled d3-sankey v0.12.3 layout engine; see plugins/cost-analytics/NOTICE. */
+		var d3Sankey=(()=>{var q=Object.defineProperty;var nt=Object.getOwnPropertyDescriptor;var rt=Object.getOwnPropertyNames;var ft=Object.prototype.hasOwnProperty;var st=(r,s)=>{for(var i in s)q(r,i,{get:s[i],enumerable:!0})},ut=(r,s,i,a)=>{if(s&&typeof s=="object"||typeof s=="function")for(let l of rt(s))!ft.call(r,l)&&l!==i&&q(r,l,{get:()=>s[l],enumerable:!(a=nt(s,l))||a.enumerable});return r};var it=r=>ut(q({},"__esModule",{value:!0}),r);var dt={};st(dt,{sankey:()=>z});function b(r,s){let i;if(s===void 0)for(let a of r)a!=null&&(i<a||i===void 0&&a>=a)&&(i=a);else{let a=-1;for(let l of r)(l=s(l,++a,r))!=null&&(i<l||i===void 0&&l>=l)&&(i=l)}return i}function I(r,s){let i;if(s===void 0)for(let a of r)a!=null&&(i>a||i===void 0&&a>=a)&&(i=a);else{let a=-1;for(let l of r)(l=s(l,++a,r))!=null&&(i>l||i===void 0&&l>=l)&&(i=l)}return i}function h(r,s){let i=0;if(s===void 0)for(let a of r)(a=+a)&&(i+=a);else{let a=-1;for(let l of r)(l=+s(l,++a,r))&&(i+=l)}return i}function A(r,s){return r.sourceLinks.length?r.depth:s-1}function y(r){return function(){return r}}function J(r,s){return T(r.source,s.source)||r.index-s.index}function P(r,s){return T(r.target,s.target)||r.index-s.index}function T(r,s){return r.y0-s.y0}function D(r){return r.value}function at(r){return r.index}function lt(r){return r.nodes}function ct(r){return r.links}function W(r,s){let i=r.get(s);if(!i)throw new Error("missing: "+s);return i}function G({nodes:r}){for(let s of r){let i=s.y0,a=i;for(let l of s.sourceLinks)l.y0=i+l.width/2,i+=l.width;for(let l of s.targetLinks)l.y1=a+l.width/2,a+=l.width}}function z(){let r=0,s=0,i=1,a=1,l=24,B=8,m,M=at,N=A,g,p,j=lt,C=ct,v=6;function c(){let t={nodes:j.apply(null,arguments),links:C.apply(null,arguments)};return K(t),O(t),Q(t),U(t),Z(t),G(t),t}c.update=function(t){return G(t),t},c.nodeId=function(t){return arguments.length?(M=typeof t=="function"?t:y(t),c):M},c.nodeAlign=function(t){return arguments.length?(N=typeof t=="function"?t:y(t),c):N},c.nodeSort=function(t){return arguments.length?(g=t,c):g},c.nodeWidth=function(t){return arguments.length?(l=+t,c):l},c.nodePadding=function(t){return arguments.length?(B=m=+t,c):B},c.nodes=function(t){return arguments.length?(j=typeof t=="function"?t:y(t),c):j},c.links=function(t){return arguments.length?(C=typeof t=="function"?t:y(t),c):C},c.linkSort=function(t){return arguments.length?(p=t,c):p},c.size=function(t){return arguments.length?(r=s=0,i=+t[0],a=+t[1],c):[i-r,a-s]},c.extent=function(t){return arguments.length?(r=+t[0][0],i=+t[1][0],s=+t[0][1],a=+t[1][1],c):[[r,s],[i,a]]},c.iterations=function(t){return arguments.length?(v=+t,c):v};function K({nodes:t,links:f}){for(let[n,e]of t.entries())e.index=n,e.sourceLinks=[],e.targetLinks=[];let o=new Map(t.map((n,e)=>[M(n,e,t),n]));for(let[n,e]of f.entries()){e.index=n;let{source:u,target:d}=e;typeof u!="object"&&(u=e.source=W(o,u)),typeof d!="object"&&(d=e.target=W(o,d)),u.sourceLinks.push(e),d.targetLinks.push(e)}if(p!=null)for(let{sourceLinks:n,targetLinks:e}of t)n.sort(p),e.sort(p)}function O({nodes:t}){for(let f of t)f.value=f.fixedValue===void 0?Math.max(h(f.sourceLinks,D),h(f.targetLinks,D)):f.fixedValue}function Q({nodes:t}){let f=t.length,o=new Set(t),n=new Set,e=0;for(;o.size;){for(let u of o){u.depth=e;for(let{target:d}of u.sourceLinks)n.add(d)}if(++e>f)throw new Error("circular link");o=n,n=new Set}}function U({nodes:t}){let f=t.length,o=new Set(t),n=new Set,e=0;for(;o.size;){for(let u of o){u.height=e;for(let{source:d}of u.targetLinks)n.add(d)}if(++e>f)throw new Error("circular link");o=n,n=new Set}}function X({nodes:t}){let f=b(t,e=>e.depth)+1,o=(i-r-l)/(f-1),n=new Array(f);for(let e of t){let u=Math.max(0,Math.min(f-1,Math.floor(N.call(null,e,f))));e.layer=u,e.x0=r+u*o,e.x1=e.x0+l,n[u]?n[u].push(e):n[u]=[e]}if(g)for(let e of n)e.sort(g);return n}function Y(t){let f=I(t,o=>(a-s-(o.length-1)*m)/h(o,D));for(let o of t){let n=s;for(let e of o){e.y0=n,e.y1=n+e.value*f,n=e.y1+m;for(let u of e.sourceLinks)u.width=u.value*f}n=(a-n+m)/(o.length+1);for(let e=0;e<o.length;++e){let u=o[e];u.y0+=n*(e+1),u.y1+=n*(e+1)}tt(o)}}function Z(t){let f=X(t);m=Math.min(B,(a-s)/(b(f,o=>o.length)-1)),Y(f);for(let o=0;o<v;++o){let n=Math.pow(.99,o),e=Math.max(1-n,(o+1)/v);_(f,n,e),$(f,n,e)}}function $(t,f,o){for(let n=1,e=t.length;n<e;++n){let u=t[n];for(let d of u){let k=0,x=0;for(let{source:w,value:R}of d.targetLinks){let S=R*(d.layer-w.layer);k+=et(w,d)*S,x+=S}if(!(x>0))continue;let L=(k/x-d.y0)*f;d.y0+=L,d.y1+=L,F(d)}g===void 0&&u.sort(T),E(u,o)}}function _(t,f,o){for(let n=t.length,e=n-2;e>=0;--e){let u=t[e];for(let d of u){let k=0,x=0;for(let{target:w,value:R}of d.sourceLinks){let S=R*(w.layer-d.layer);k+=ot(d,w)*S,x+=S}if(!(x>0))continue;let L=(k/x-d.y0)*f;d.y0+=L,d.y1+=L,F(d)}g===void 0&&u.sort(T),E(u,o)}}function E(t,f){let o=t.length>>1,n=t[o];V(t,n.y0-m,o-1,f),H(t,n.y1+m,o+1,f),V(t,a,t.length-1,f),H(t,s,0,f)}function H(t,f,o,n){for(;o<t.length;++o){let e=t[o],u=(f-e.y0)*n;u>1e-6&&(e.y0+=u,e.y1+=u),f=e.y1+m}}function V(t,f,o,n){for(;o>=0;--o){let e=t[o],u=(e.y1-f)*n;u>1e-6&&(e.y0-=u,e.y1-=u),f=e.y0-m}}function F({sourceLinks:t,targetLinks:f}){if(p===void 0){for(let{source:{sourceLinks:o}}of f)o.sort(P);for(let{target:{targetLinks:o}}of t)o.sort(J)}}function tt(t){if(p===void 0)for(let{sourceLinks:f,targetLinks:o}of t)f.sort(P),o.sort(J)}function et(t,f){let o=t.y0-(t.sourceLinks.length-1)*m/2;for(let{target:n,width:e}of t.sourceLinks){if(n===f)break;o+=e+m}for(let{source:n,width:e}of f.targetLinks){if(n===t)break;o-=e}return o}function ot(t,f){let o=f.y0-(f.targetLinks.length-1)*m/2;for(let{source:n,width:e}of f.targetLinks){if(n===t)break;o+=e+m}for(let{target:n,width:e}of t.sourceLinks){if(n===f)break;o-=e}return o}return c}return it(dt);})();
 		/**
 		 * Browser half of the cost-analytics plugin: a billing pill beside the
 		 * token-usage pill in the composer dock, and the "成本统计" settings
@@ -279,133 +281,88 @@ window.__ModuleLoader__.load({
 				sessionCount: sessions.length,
 			};
 		}
-		/**
-		 * Distribute one column's node heights over a fixed track.
-		 * @param weights - relative share per node.
-		 * @param available - track height in pixels.
-		 * @param minimum - minimum node height.
-		 * @returns one height per weight, scaled to fit the track.
-		 */
-		function nodeHeights(weights, available, minimum) {
-			const total = weights.reduce((sum, weight) => sum + weight, 0);
-			const raw = weights.map((weight) => total > 0 ? (weight / total) * available : available / weights.length);
-			const clamped = raw.map((height) => Math.max(minimum, height));
-			const sum = clamped.reduce((acc, height) => acc + height, 0);
-			return sum <= available ? clamped : clamped.map((height) => (height / sum) * available);
-		}
-		/** @returns top offsets for one column's node heights, separated by the shared gap. */
-		function stackOffsets(heights) {
-			const offsets = [];
-			let cursor = 0;
-			for (const height of heights) {
-				offsets.push(cursor);
-				cursor += height + 3;
-			}
-			return offsets;
-		}
 		const svgText = { fontSize: 10, fill: "var(--dsw-alias-label-secondary)" };
-		const sankeyStyle = { width: "100%", height: "auto", display: "block" };
+		const sankeyStyle = { width: "100%", height: "auto", display: "block", overflow: "visible" };
 		/**
-		 * Three-column flow diagram: models to requests to amounts. Node and link
-		 * thickness follow each model's share, and the two columns share one
-		 * vertical scale so 1px of link means the same flow at both seams.
-		 * @param props - priced model rows, the row totals, and formatting seats.
+		 * Two-column flow diagram laid out by the bundled d3-sankey algorithm.
+		 * Display weights use a logarithmic cost scale so zero-priced and unpriced
+		 * rows remain visible while labels retain their actual amounts.
+		 * @param props - priced model rows and formatting seats.
 		 */
 		function Sankey(props) {
-			const { rows, totalRequests, currency, tag, t } = props;
-			const gapCount = Math.max(0, rows.length - 1);
-			const track = Math.max(28, rows.length * 16) + gapCount * 3;
-			const height = track + 26;
-			const amountWeights = rows.map((row) => row.cost === null ? 1 : Math.max(row.cost, 0));
-			const leftHeights = nodeHeights(rows.map((row) => Math.max(row.usage.requests || 0, 1)), track - gapCount * 3, 5);
-			const rightHeights = nodeHeights(amountWeights, track - gapCount * 3, 5);
-			const leftOffsets = stackOffsets(leftHeights);
-			const rightOffsets = stackOffsets(rightHeights);
-			const top = 20;
-			const leftX = 80;
-			const spineX = 158;
-			const rightX = 236;
-			const nodeWidth = 48;
-			const spineWidth = 18;
+			const { rows, currency, tag, t } = props;
+			const width = 520;
+			const height = Math.max(132, rows.length * 48 + 24);
+			const leftX = 132;
+			const rightX = width - 132;
+			const graphRows = rows.map((row, index) => ({
+				row,
+				index,
+				label: row.model === UNKNOWN_MODEL ? t("untitledModel") : row.model,
+				amount: formatMoney(row.cost, currency, tag),
+				weight: row.cost === null ? 1 : Math.max(1, Math.log1p(Math.max(0, row.cost))),
+			}));
+			const nodes = [
+				...graphRows.map((item) => ({ id: `model:${item.index}`, side: "left", order: item.index, label: item.label })),
+				...graphRows.map((item) => ({ id: `cost:${item.index}`, side: "right", order: item.index, label: item.amount })),
+			];
+			const links = graphRows.map((item) => ({
+				source: `model:${item.index}`,
+				target: `cost:${item.index}`,
+				value: item.weight,
+				rowIndex: item.index,
+			}));
+			const graph = d3Sankey.sankey()
+				.nodeId((node) => node.id)
+				.nodeWidth(12)
+				.nodePadding(14)
+				.nodeSort((left, right) => left.order - right.order)
+				.nodeAlign((node) => node.id.startsWith("model:") ? 0 : 1)
+				.extent([[leftX, 18], [rightX, height - 8]])({ nodes, links });
 			const children = [];
-			rows.forEach((row, index) => {
-				const color = MODEL_COLORS[index % MODEL_COLORS.length];
-				const y = top + leftOffsets[index];
-				const heightPx = leftHeights[index];
-				const spineY = top + leftOffsets[index];
-				const rightY = top + rightOffsets[index];
-				const amount = formatMoney(row.cost, currency, tag);
-				const label = row.model === UNKNOWN_MODEL ? t("untitledModel") : row.model;
+			for (const link of graph.links) {
+				const item = graphRows[link.rowIndex];
+				const color = MODEL_COLORS[item.index % MODEL_COLORS.length];
+				const midX = (link.source.x1 + link.target.x0) / 2;
 				children.push(react.createElement("path", {
-					key: `l-${row.model}`,
-					d: `M ${leftX + nodeWidth},${y + heightPx / 2} C ${(leftX + nodeWidth + spineX) / 2},${y + heightPx / 2} ${(leftX + nodeWidth + spineX) / 2},${spineY + heightPx / 2} ${spineX},${spineY + heightPx / 2}`,
+					key: `link-${item.index}`,
+					d: `M ${link.source.x1},${link.y0} C ${midX},${link.y0} ${midX},${link.y1} ${link.target.x0},${link.y1}`,
 					stroke: color,
-					strokeWidth: Math.max(1, heightPx),
+					strokeWidth: Math.max(1, link.width),
+					strokeOpacity: 0.38,
 					fill: "none",
-					strokeOpacity: 0.35,
-				}));
-				children.push(react.createElement("path", {
-					key: `r-${row.model}`,
-					d: `M ${spineX + spineWidth},${spineY + heightPx / 2} C ${(spineX + spineWidth + rightX) / 2},${spineY + heightPx / 2} ${(spineX + spineWidth + rightX) / 2},${rightY + rightHeights[index] / 2} ${rightX},${rightY + rightHeights[index] / 2}`,
-					stroke: color,
-					strokeWidth: Math.max(1, rightHeights[index]),
-					fill: "none",
-					strokeOpacity: 0.35,
-				}));
+					strokeLinecap: "round",
+				}, react.createElement("title", null, `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })} · ${item.amount}`)));
+			}
+			for (const node of graph.nodes) {
+				const item = graphRows[node.order];
+				const color = MODEL_COLORS[node.order % MODEL_COLORS.length];
+				const centerY = (node.y0 + node.y1) / 2;
 				children.push(react.createElement("rect", {
-					key: `ln-${row.model}`,
-					x: leftX,
-					y,
-					width: nodeWidth,
-					height: heightPx,
-					rx: 2,
+					key: node.id,
+					x: node.x0,
+					y: node.y0,
+					width: node.x1 - node.x0,
+					height: Math.max(1, node.y1 - node.y0),
+					rx: 3,
 					fill: color,
-				}, react.createElement("title", null, `${label} · ${t("modelRequests", { count: formatCount(row.usage.requests) })} · ${amount}`)));
+				}, react.createElement("title", null, node.side === "left"
+					? `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })}`
+					: `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })}`)));
 				children.push(react.createElement("text", {
-					key: `lt-${row.model}`,
-					x: leftX - 4,
-					y: y + heightPx / 2 + 3,
-					textAnchor: "end",
+					key: `${node.id}-label`,
+					x: node.side === "left" ? node.x0 - 8 : node.x1 + 8,
+					y: centerY + 3,
+					textAnchor: node.side === "left" ? "end" : "start",
 					style: svgText,
-				}, truncate(label, 14)));
-				children.push(react.createElement("rect", {
-					key: `rn-${row.model}`,
-					x: rightX,
-					y: rightY,
-					width: nodeWidth,
-					height: rightHeights[index],
-					rx: 2,
-					fill: color,
-				}));
-				children.push(react.createElement("text", {
-					key: `rt-${row.model}`,
-					x: rightX + nodeWidth + 4,
-					y: rightY + rightHeights[index] / 2 + 3,
-					style: svgText,
-				}, truncate(amount, 11)));
-			});
+				}, truncate(node.label, 20)));
+			}
 			return react.createElement("svg", {
-				viewBox: `0 0 348 ${height}`,
+				viewBox: `0 0 ${width} ${height}`,
 				role: "img",
 				"aria-label": t("dialogTitle"),
 				style: sankeyStyle,
-			},
-				react.createElement("rect", {
-					x: spineX,
-					y: top,
-					width: spineWidth,
-					height: track,
-					rx: 3,
-					fill: "var(--dsw-alias-bg-layer-3)",
-				}),
-				react.createElement("text", {
-					x: spineX + spineWidth / 2,
-					y: 13,
-					textAnchor: "middle",
-					style: svgText,
-				}, t("sankeyRequests", { count: formatCount(totalRequests) })),
-				...children,
-			);
+			}, ...children);
 		}
 		/** Decorative coin glyph for the dock pill. */
 		function CoinIcon() {

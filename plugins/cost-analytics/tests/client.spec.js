@@ -158,4 +158,29 @@ test('portals the billing pill into the host token-usage row with matching pill 
   assert.equal(panel.children[0].children[1].children[0], '¥1.20')
   assert.equal(panel.children[1].props['aria-hidden'], true)
   assert.equal(panel.children[2].type, 'dl')
+  const sankeyNode = panel.children.find(child => typeof child?.type === 'function')
+  const chart = sankeyNode.type(sankeyNode.props)
+  assert.equal(chart.type, 'svg')
+  assert.equal(chart.props.viewBox, '0 0 520 132')
+  const link = chart.children.find(child => child?.type === 'path')
+  assert.match(link.props.d, /C/)
+  assert.equal(link.props.strokeLinecap, 'round')
+
+  const expandedChart = sankeyNode.type({
+    rows: [
+      { model: 'priced-model', cost: 100, usage: { requests: 3 } },
+      { model: 'free-model', cost: 0, usage: { requests: 2 } },
+      { model: '(unknown)', cost: null, usage: { requests: 1 } },
+    ],
+    currency: 'CNY',
+    tag: 'zh-CN',
+    t,
+  })
+  assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 3)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 6)
+  const labels = expandedChart.children
+    .filter(child => child?.type === 'text')
+    .map(child => child.children[0])
+  assert.ok(labels.includes('¥0.00'))
+  assert.ok(labels.includes('—'))
 })
