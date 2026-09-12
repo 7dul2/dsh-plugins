@@ -189,14 +189,27 @@ test('portals the billing pill into the host token-usage row with matching pill 
     tag: 'zh-CN',
     t,
   })
-  assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 6)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 4)
   const ribbons = expandedChart.children.filter(child => child?.type === 'path')
   assert.equal(new Set(ribbons.map(child => child.props.key)).size, ribbons.length)
   assert.ok(ribbons.every(child => !/NaN|Infinity/.test(child.props.d)))
-  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 7)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 9)
   const labels = expandedChart.children
     .filter(child => child?.type === 'text')
     .map(child => child.children[0])
   assert.ok(labels.includes('¥0.00'))
-  assert.ok(labels.includes('—'))
+  assert.ok(labels.includes('未知'))
+  const proportional = sankeyNode.type({
+    rows: [
+      { model: 'A', cost: 1, usage: { requests: 3, input: 10 } },
+      { model: 'B', cost: 4, usage: { requests: 1, input: 90 } },
+      { model: 'Free', cost: 0, usage: { requests: 0, input: 0 } },
+    ],
+    currency: 'CNY', tag: 'zh-CN', t,
+  })
+  const height = key => proportional.children.find(child => child.props?.key === key).props.height
+  assert.ok(Math.abs(height('node-0-0') / height('node-0-1') - 3) < 1e-8)
+  assert.ok(Math.abs(height('node-1-0') / height('node-1-1') - 1 / 9) < 1e-8)
+  assert.ok(Math.abs(height('node-2-0') / height('node-2-1') - 1 / 4) < 1e-8)
+  assert.equal(height('node-2-2'), 0)
 })
