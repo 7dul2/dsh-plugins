@@ -14,7 +14,8 @@ test('portals the billing pill into the host token-usage row with matching pill 
       sessions: [{
         sessionId: 'session-1',
         models: {
-          'deepseek-flash': {
+          'provider-a/deepseek-flash': {
+            provider: 'provider-a', modelId: 'deepseek-flash',
             requests: 1,
             input: 100,
             cacheRead: 0,
@@ -33,7 +34,7 @@ test('portals the billing pill into the host token-usage row with matching pill 
     status: 'ready',
     value: {
       currency: 'CNY',
-      prices: { 'deepseek-flash': { input: 0.01, cacheRead: 0, cacheWrite: 0, output: 0.02 } },
+      prices: { 'provider-a/deepseek-flash': { input: 0.01, cacheRead: 0, cacheWrite: 0, output: 0.02 } },
     },
   }
   let hookIndex = 0
@@ -158,15 +159,15 @@ test('portals the billing pill into the host token-usage row with matching pill 
   assert.equal(panel.children[0].children[0].children[1], '本次会话计费')
   assert.equal(panel.children[0].children[1].children[0], '¥0.00')
 
-  const modelUsage = usage.value.sessions[0].models['deepseek-flash']
+  const modelUsage = usage.value.sessions[0].models['provider-a/deepseek-flash']
   Object.assign(modelUsage, { input: 1_000_000, cacheRead: 2_000_000, cacheWrite: 500_000, output: 250_000 })
-  cost.value.prices['deepseek-flash'] = { input: 2, cacheRead: 0.2, cacheWrite: 4, output: 8 }
+  cost.value.prices['provider-a/deepseek-flash'] = { input: 2, cacheRead: 0.2, cacheWrite: 4, output: 8 }
   assert.equal(renderRow().node.children[2].children[0].children[1].children[0], '¥6.40')
   modelUsage.periods = {
     peak: { input: 1_000_000, cacheRead: 1_000_000, cacheWrite: 250_000, output: 125_000 },
     offPeak: { input: 0, cacheRead: 1_000_000, cacheWrite: 250_000, output: 125_000 },
   }
-  cost.value.prices['deepseek-flash'].peak = { input: 4, cacheRead: 0.4, cacheWrite: 8, output: 16 }
+  cost.value.prices['provider-a/deepseek-flash'].peak = { input: 4, cacheRead: 0.4, cacheWrite: 8, output: 16 }
   assert.equal(renderRow().node.children[2].children[0].children[1].children[0], '¥10.60')
   assert.equal(panel.children[1].props['aria-hidden'], true)
   assert.equal(panel.children[2].type, 'dl')
@@ -181,9 +182,9 @@ test('portals the billing pill into the host token-usage row with matching pill 
 
   const expandedChart = sankeyNode.type({
     rows: [
-      { model: 'priced-model', cost: 100, usage: { requests: 3 } },
-      { model: 'free-model', cost: 0, usage: { requests: 2 } },
-      { model: '(unknown)', cost: null, usage: { requests: 1 } },
+      { model: 'priced-model', cost: 100, usage: { requests: 3, input: 100 } },
+      { model: 'free-model', cost: 0, usage: { requests: 2, input: 100 } },
+      { model: '(unknown)', cost: null, usage: { requests: 1, input: 100 } },
     ],
     currency: 'CNY',
     tag: 'zh-CN',
@@ -196,7 +197,9 @@ test('portals the billing pill into the host token-usage row with matching pill 
   assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 9)
   const labels = expandedChart.children
     .filter(child => child?.type === 'text')
-    .map(child => child.children[0])
+    .flatMap(child => Array.isArray(child.children[0])
+      ? child.children[0].map(tspan => tspan.children[0])
+      : [child.children[0]])
   assert.ok(labels.includes('¥0.00'))
   assert.ok(labels.includes('未知'))
   const proportional = sankeyNode.type({
@@ -212,4 +215,27 @@ test('portals the billing pill into the host token-usage row with matching pill 
   assert.ok(Math.abs(height('node-1-0') / height('node-1-1') - 1 / 9) < 1e-8)
   assert.ok(Math.abs(height('node-2-0') / height('node-2-1') - 1 / 4) < 1e-8)
   assert.equal(height('node-2-2'), 0)
+  const split = sankeyNode.type({
+    rows: [
+      { model: 'a/flash', modelId: 'flash', provider: 'a', cost: 1, usage: { requests: 3, input: 10 } },
+      { model: 'b/flash', modelId: 'flash', provider: 'b', cost: 4, usage: { requests: 1, input: 90 } },
+    ], currency: 'CNY', tag: 'zh-CN', t,
+  })
+  const splitNodes = split.children.filter(child => child.type === 'rect')
+  assert.equal(splitNodes.length, 5)
+  assert.equal(splitNodes.filter(child => child.props.key.startsWith('node-0-')).length, 1)
+  assert.ok(split.children.some(child => child.children?.[0] === 'flash · 4 次'))
+  const leftLinks = split.children.filter(child => child.props?.key?.startsWith('link-0-'))
+  assert.equal(leftLinks[0].props.fill, leftLinks[1].props.fill)
+  assert.equal(leftLinks.length, 2)
+
+  delete cost.value.prices['provider-a/deepseek-flash']
+  cost.value.prices['deepseek-flash'] = { input: 1000, output: 1000 }
+  assert.equal(renderRow().node.children[0].children[1].children[0], '¥1,250.00')
+  cost.value.prices['provider-a/deepseek-flash'] = { input: 2, cacheRead: 0.2, cacheWrite: 4, output: 8 }
+  usage.value.sessions[0].models['provider-b/deepseek-flash'] = {
+    ...modelUsage, provider: 'provider-b', modelId: 'deepseek-flash',
+  }
+  cost.value.prices['provider-b/deepseek-flash'] = { input: 4, cacheRead: 0.4, cacheWrite: 8, output: 16 }
+  assert.equal(renderRow().node.children[0].children[1].children[0], '¥19.20')
 })

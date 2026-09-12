@@ -8,12 +8,12 @@
  *   settings UI) overrides it per field.
  * - `cost-analytics-usage` is host-written only. One scan enumerates the
  *   session corpus through `sessionQuery`, folds every session's durable
- *   usage samples into per-model request counts, the four disjoint token
+ *   usage samples into per-provider/model request counts, the four disjoint token
  *   buckets, and peak/off-peak period splits, folds each subagent session
  *   into its nearest non-subagent ancestor, and publishes the rollup. The
  *   browser half prices those buckets; no money is computed here.
  *
- * Peak billing follows the provider's Beijing (UTC+8) weekday windows:
+ * Peak billing follows the configured provider's Beijing (UTC+8) weekday windows:
  * 9:00–12:00 and 14:00–18:00 are peak, everything else off-peak. A model
  * whose price entry carries `peak` is billed at the peak rates inside those
  * windows and at its flat rates outside them; a flat-only entry uses the
@@ -83,7 +83,7 @@ const priceEntry = z.object({
  *
  * @typedef {object} Config
  * @property {string} currency ISO-4217 code the browser half formats amounts in.
- * @property {Record<string, object>} prices per-model price table forming the namespace `base` layer.
+ * @property {Record<string, object>} prices provider/model price table; a model-only key is a compatibility fallback forming the namespace `base` layer.
  * @property {number} scanConcurrency session logs read concurrently by one scan (1–16).
  * @property {number} refreshIntervalMinutes minutes between whole-corpus rescans (1+).
  * @property {number} bootDelaySeconds seconds after activation before the first scan (0–600).
@@ -111,6 +111,8 @@ const periodUsage = z.object({
 
 /** One model's rollup inside one session row: lifetime totals plus both period splits. */
 const modelUsage = z.object({
+  provider: z.string().default(''),
+  modelId: z.string().default(''),
   requests: z.number().default(0),
   input: z.number().default(0),
   cacheRead: z.number().default(0),
@@ -204,8 +206,8 @@ function sameBuckets(left, right) {
 
 /**
  * Apply one signed sample to a model's ledger.
- * @param models - model-keyed ledger map being folded.
- * @param model - provider-owned model id the sample belongs to.
+ * @param models - provider/model-keyed ledger map being folded.
+ * @param model - provider/model route key the sample belongs to.
  * @param peak - whether the sample bills in a peak window.
  * @param buckets - the four disjoint token buckets.
  * @param requestDelta - request count to add (0 when replacing a slot).
@@ -227,32 +229,29 @@ function applySample(models, model, peak, buckets, requestDelta, sign) {
 }
 
 /**
- * Fold one session log into a model-keyed ledger.
+ * Fold one session log into a provider/model-keyed ledger.
  *
  * Events at or below `inheritedCount` belong to a fork's copied prefix and
- * are skipped. The model of a sample is the newest `request/header` route
- * before it, falling back to the newest `request/context` route.
+ * are skipped. Samples use the latest request header or context route,
+ * keeping provider and model together. Missing providers remain unknown.
  * @param events - the session's complete raw event log.
  * @param inheritedCount - exact fork-inherited prefix length of that log.
- * @returns model id to rollup map; an empty map when the log bills nothing.
+ * @returns provider/model key to rollup map; an empty map when the log bills nothing.
  */
 function foldSessionEvents(events, inheritedCount) {
   const models = new Map()
   let last = null
-  let headerModel
-  let contextModel
+  let route
   for (const event of events) {
     if (event === null || typeof event !== 'object') continue
     if (typeof event.seq !== 'number' || event.seq < inheritedCount) continue
     const data = event.data
     if (event.type === 'request/header') {
-      const model = data?.header?.config?.model
-      if (typeof model === 'string' && model !== '') headerModel = model
+      route = data?.header?.config
       continue
     }
     if (event.type === 'request/context') {
-      const model = data?.model
-      if (typeof model === 'string' && model !== '') contextModel = model
+      route = data
       continue
     }
     if (event.type === 'llm/retry-started') {
@@ -273,12 +272,16 @@ function foldSessionEvents(events, inheritedCount) {
     if (buckets.input === 0 && buckets.output === 0 && buckets.cacheRead === 0 && buckets.cacheWrite === 0) continue
     const turn = typeof data?.turn === 'number' ? data.turn : -1
     const step = typeof data?.step === 'number' ? data.step : -1
-    const model = headerModel ?? contextModel ?? UNKNOWN_MODEL
+    const modelId = typeof route?.model === 'string' && route.model !== '' ? route.model : UNKNOWN_MODEL
+    const provider = typeof route?.provider === 'string' && route.provider !== '' ? route.provider : UNKNOWN_MODEL
+    const model = provider + '/' + modelId
     const peak = isPeakTime(event.time)
     const replacement = last !== null && last.turn === turn && last.step === step
-    if (replacement && sameBuckets(last.buckets, buckets)) continue
-    if (replacement) applySample(models, last.model, last.peak, last.buckets, 0, -1)
-    applySample(models, model, peak, buckets, replacement ? 0 : 1, 1)
+    if (replacement && last.model === model && sameBuckets(last.buckets, buckets)) continue
+    const moved = replacement && last.model !== model
+    if (replacement) applySample(models, last.model, last.peak, last.buckets, moved ? -1 : 0, -1)
+    applySample(models, model, peak, buckets, replacement && !moved ? 0 : 1, 1)
+    Object.assign(models.get(model), { provider, modelId })
     last = { turn, step, model, peak, buckets }
   }
   return models
@@ -293,6 +296,8 @@ function mergeLedgers(target, source) {
   for (const [model, entry] of source) {
     const into = target.get(model) ?? emptyModelUsage()
     if (!target.has(model)) target.set(model, into)
+    into.provider = entry.provider
+    into.modelId = entry.modelId
     into.requests += entry.requests
     for (const key of ['input', 'cacheRead', 'cacheWrite', 'output']) into[key] += entry[key]
     for (const period of ['peak', 'offPeak']) {
@@ -396,7 +401,7 @@ export function apply(ctx, config) {
     }
   }
 
-  /** @returns the model ids the resolved price table covers. */
+  /** @returns the provider/model and model-only keys covered by the price table. */
   const readPricedModels = () => {
     try {
       const prices = costScope === undefined ? {} : costScope.get().prices ?? {}
@@ -516,7 +521,9 @@ export function apply(ctx, config) {
     const unpriced = new Set()
     for (const session of sessions) {
       for (const model of Object.keys(session.models)) {
-        if (pricedModels !== undefined && !pricedModels.has(model)) unpriced.add(model)
+        const separator = model.indexOf('/')
+        const modelId = separator < 0 ? model : model.slice(separator + 1)
+        if (pricedModels !== undefined && !pricedModels.has(model) && !pricedModels.has(modelId)) unpriced.add(model)
       }
     }
     const degraded = []

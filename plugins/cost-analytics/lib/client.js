@@ -15,7 +15,7 @@ window.__ModuleLoader__.load({
 		 *
 		 * Both surfaces read the same two host-owned settings namespaces through
 		 * scopes bound in `apply`: `cost-analytics-usage` carries the host
-		 * rollup (per-session, per-model requests, four token buckets, and
+		 * rollup (per-session, per-provider/model requests, four token buckets, and
 		 * peak/off-peak splits, with subagent sessions already folded into their
 		 * parent), and `cost-analytics` carries the currency and price table.
 		 * Money is computed here and nowhere else, so a price edit reprices every
@@ -44,7 +44,7 @@ window.__ModuleLoader__.load({
 		];
 		const zh = {
 			nav: "消耗统计",
-			chartTokens: "Token 消耗", chartCost: "费用消耗", chartUnknown: "未知",
+			chartTokens: "渠道 Token 消耗", chartCost: "渠道费用", chartUnknown: "未知",
 			chartScale: "各列独立按占比缩放；未知价格不绘制费用连线。",
 			dialogTitle: "本次会话计费",
 			pillTitle: "{cost} · {requests} 次请求",
@@ -76,7 +76,7 @@ window.__ModuleLoader__.load({
 		};
 		const en = {
 			nav: "Cost analytics",
-			chartTokens: "Token usage", chartCost: "Cost", chartUnknown: "Unknown",
+			chartTokens: "Tokens by provider", chartCost: "Cost by provider", chartUnknown: "Unknown",
 			chartScale: "Each column uses its own share scale; unknown prices have no cost ribbon.",
 			dialogTitle: "Session billing",
 			pillTitle: "{cost} · {requests} requests",
@@ -198,15 +198,20 @@ window.__ModuleLoader__.load({
 		/**
 		 * Price every model of one session row.
 		 * @param session - one `cost-analytics-usage` session row.
-		 * @param prices - resolved price table keyed by model id.
+		 * @param prices - resolved price table keyed by provider/model, with a
+		 * model-only fallback for existing configurations.
 		 * @returns per-model rows sorted by amount, plus the row's totals.
 		 */
 		function priceSession(session, prices) {
 			const models = session.models === undefined ? {} : session.models;
 			const rows = Object.keys(models).map((model) => {
 				const usage = models[model];
-				const cost = modelCost(usage, prices[model]);
-				return { model, usage, cost };
+				const provider = usage.provider || UNKNOWN_MODEL;
+				const modelId = usage.modelId || model;
+				const routeKey = provider + '/' + modelId;
+				const price = provider === UNKNOWN_MODEL ? prices[modelId] : prices[routeKey] ?? prices[modelId];
+				const cost = modelCost(usage, price);
+				return { model: routeKey, modelId, provider, usage, cost, priceKey: price === undefined ? null : (prices[routeKey] === undefined ? modelId : routeKey) };
 			});
 			rows.sort((left, right) => {
 				const leftCost = left.cost === null ? -1 : left.cost;
@@ -231,7 +236,7 @@ window.__ModuleLoader__.load({
 		 * Price the complete rollup and group its session rows by project path.
 		 * @param usage - the resolved `cost-analytics-usage` value.
 		 * @param prices - resolved price table keyed by model id.
-		 * @returns summary totals, unpriced model ids, and ordered project groups.
+		 * @returns summary totals, unpriced provider/model ids, and ordered project groups.
 		 */
 		function buildSection(usage, prices) {
 			const sessions = Array.isArray(usage.sessions) ? usage.sessions : [];
@@ -294,20 +299,32 @@ window.__ModuleLoader__.load({
 		 */
 		function Sankey({ rows, currency, tag, t }) {
 			const width = 760;
-			const height = Math.max(340, rows.length * 64 + 80);
+			const height = Math.max(340, rows.length * 80 + 80);
 			const top = 48;
 			const bottom = height - 32;
-			const gap = 28;
+			const gap = 42;
 			const xs = [12, 375, 738];
+			const groups = [];
+			const groupByModel = new Map();
+			const groupIndex = rows.map(row => {
+				const modelId = row.modelId || row.model;
+				if (!groupByModel.has(modelId)) {
+					groupByModel.set(modelId, groups.length);
+					groups.push({ modelId, requests: 0 });
+				}
+				const index = groupByModel.get(modelId);
+				groups[index].requests += row.usage.requests || 0;
+				return index;
+			});
 			const values = [
-				rows.map(row => row.usage.requests || 0),
+				groups.map(group => group.requests),
 				rows.map(row => (row.usage.input || 0) + (row.usage.cacheRead || 0) + (row.usage.cacheWrite || 0) + (row.usage.output || 0)),
 				rows.map(row => row.cost ?? 0),
 			];
 			const columns = values.map((weights, column) => {
 				const positive = weights.map((value, index) => ({ value, index })).filter(item => item.value > 0);
 				const missing = weights.map((value, index) => ({ value, index })).filter(item => item.value <= 0);
-				const result = new Array(rows.length);
+				const result = new Array(weights.length);
 				const limit = bottom - missing.length * gap;
 				if (positive.length) {
 					const nodes = positive.flatMap(item => [
@@ -336,39 +353,57 @@ window.__ModuleLoader__.load({
 				key: 'heading-' + column, x: xs[column], y: 20,
 				textAnchor: column === 2 ? 'end' : 'start', style: svgText,
 			}, label)));
+			const offsets = groups.map(() => 0);
 			for (let column = 0; column < 2; column++) {
 				rows.forEach((row, index) => {
 					if (column === 1 && row.cost === null) return;
-					const source = columns[column][index];
+					let source = columns[column][index];
+					if (column === 0) {
+						const group = groupIndex[index];
+						const node = columns[0][group];
+						const share = groups[group].requests ? (row.usage.requests || 0) / groups[group].requests : 0;
+						const y0 = node.y0 + offsets[group];
+						const span = (node.y1 - node.y0) * share;
+						source = { x: node.x, y0, y1: y0 + span };
+						offsets[group] += span;
+					}
 					const target = columns[column + 1][index];
-					if (source.y0 === source.y1 && target.y0 === target.y1) return;
+					if (source.y0 === source.y1 || target.y0 === target.y1) return;
 					const x0 = source.x + 10;
 					const x1 = target.x;
 					const mid = (x0 + x1) / 2;
 					children.push(react.createElement('path', {
 						key: 'link-' + column + '-' + index,
 						d: `M ${x0},${source.y0} C ${mid},${source.y0} ${mid},${target.y0} ${x1},${target.y0} L ${x1},${target.y1} C ${mid},${target.y1} ${mid},${source.y1} ${x0},${source.y1} Z`,
-						fill: MODEL_COLORS[index % MODEL_COLORS.length], fillOpacity: 0.28,
+						fill: MODEL_COLORS[groupIndex[index] % MODEL_COLORS.length], fillOpacity: 0.28,
 					}, react.createElement('title', null, row.model)));
 				});
 			}
 			columns.forEach((nodes, column) => nodes.forEach((node, index) => {
 				const row = rows[index];
+				const modelId = column === 0 ? groups[index].modelId : row.modelId || row.model;
 				const label = column === 0 ? t('modelRequests', { count: formatCount(values[0][index]) })
 					: column === 1 ? t('tokenCount', { count: formatTokens(values[1][index]) })
 					: row.cost === null ? t('chartUnknown') : formatMoney(row.cost, currency, tag);
-				const name = row.model === UNKNOWN_MODEL ? t('untitledModel') : row.model;
+				const name = column === 0 ? modelId : (row.provider || UNKNOWN_MODEL) + '/' + modelId;
+				const colorIndex = column === 0 ? index : groupIndex[index];
 				children.push(react.createElement('rect', {
 					key: 'node-' + column + '-' + index,
 					x: node.x, y: node.y0, width: 10, height: node.y1 - node.y0,
-					fill: MODEL_COLORS[index % MODEL_COLORS.length],
+					fill: MODEL_COLORS[colorIndex % MODEL_COLORS.length],
 				}, react.createElement('title', null, name + ' · ' + label)));
+				const x = column === 2 ? node.x - 8 : node.x + 18;
+				const y = (node.y0 + node.y1) / 2;
 				children.push(react.createElement('text', {
-					key: 'label-' + column + '-' + index,
-					x: column === 2 ? node.x - 8 : node.x + 18,
-					y: (node.y0 + node.y1) / 2 + 4,
-					textAnchor: column === 2 ? 'end' : 'start', style: svgText,
-				}, column === 0 ? truncate(name, 22) + ' · ' + label : label));
+					key: 'label-' + column + '-' + index, x,
+					y: y + 4, textAnchor: column === 2 ? 'end' : 'start', style: svgText,
+				}, column === 1
+					? [react.createElement('tspan', { key: 'route', x, dy: -6 }, truncate(name, 30)),
+						react.createElement('tspan', { key: 'tokens', x, dy: 18 }, label)]
+					: column === 0 ? truncate(name, 22) + ' · ' + label
+						: [react.createElement('tspan', { key: 'route', x, dy: -6 }, truncate(name, 30)),
+							react.createElement('tspan', { key: 'cost', x, dy: 18 }, label)],
+				react.createElement('title', null, name + ' · ' + label)));
 			}));
 			children.push(react.createElement('text', {
 				key: 'scale-note', x: 12, y: height - 6, style: { ...svgText, fontSize: 11 },
