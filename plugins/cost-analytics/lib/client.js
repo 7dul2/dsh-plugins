@@ -169,14 +169,14 @@ window.__ModuleLoader__.load({
 		/**
 		 * Sum the four disjoint buckets of one model rollup, or of one period split.
 		 * @param buckets - object carrying the four bucket fields.
-		 * @param price - rates to apply.
+		 * @param price - currency amounts per million tokens for each bucket.
 		 * @returns the amount those buckets cost.
 		 */
 		function bucketCost(buckets, price) {
-			return (buckets.input || 0) * (price.input || 0)
+			return ((buckets.input || 0) * (price.input || 0)
 				+ (buckets.cacheRead || 0) * (price.cacheRead || 0)
 				+ (buckets.cacheWrite || 0) * (price.cacheWrite || 0)
-				+ (buckets.output || 0) * (price.output || 0);
+				+ (buckets.output || 0) * (price.output || 0)) / 1_000_000;
 		}
 		/**
 		 * Price one model's rollup under the two-tier rule.

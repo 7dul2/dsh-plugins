@@ -65,7 +65,7 @@ const rates = z.object({
 })
 
 /**
- * One price entry: flat rates, plus optional peak rates. When `peak` is
+ * One price entry in currency per million tokens: flat rates, plus optional peak rates. When `peak` is
  * present the flat fields price off-peak windows only. The union keeps an
  * absent `peak` absent — a bare object schema would materialize all-zero peak
  * rates and silently move the model into two-tier billing.

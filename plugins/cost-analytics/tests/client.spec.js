@@ -156,7 +156,18 @@ test('portals the billing pill into the host token-usage row with matching pill 
     cursor: 'default',
   })
   assert.equal(panel.children[0].children[0].children[1], '本次会话计费')
-  assert.equal(panel.children[0].children[1].children[0], '¥1.20')
+  assert.equal(panel.children[0].children[1].children[0], '¥0.00')
+
+  const modelUsage = usage.value.sessions[0].models['deepseek-flash']
+  Object.assign(modelUsage, { input: 1_000_000, cacheRead: 2_000_000, cacheWrite: 500_000, output: 250_000 })
+  cost.value.prices['deepseek-flash'] = { input: 2, cacheRead: 0.2, cacheWrite: 4, output: 8 }
+  assert.equal(renderRow().node.children[2].children[0].children[1].children[0], '¥6.40')
+  modelUsage.periods = {
+    peak: { input: 1_000_000, cacheRead: 1_000_000, cacheWrite: 250_000, output: 125_000 },
+    offPeak: { input: 0, cacheRead: 1_000_000, cacheWrite: 250_000, output: 125_000 },
+  }
+  cost.value.prices['deepseek-flash'].peak = { input: 4, cacheRead: 0.4, cacheWrite: 8, output: 16 }
+  assert.equal(renderRow().node.children[2].children[0].children[1].children[0], '¥10.60')
   assert.equal(panel.children[1].props['aria-hidden'], true)
   assert.equal(panel.children[2].type, 'dl')
   const sankeyNode = panel.children.find(child => typeof child?.type === 'function')
