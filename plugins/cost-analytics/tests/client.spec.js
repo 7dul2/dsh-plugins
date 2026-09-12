@@ -132,14 +132,15 @@ test('portals the billing pill into the host token-usage row with matching pill 
   const panel = openTree.node.children[2]
   assert.equal(panel.type, 'div')
   assert.deepEqual(JSON.parse(JSON.stringify(panel.props.style)), {
-    position: 'absolute',
-    bottom: 'calc(100% + 8px)',
-    left: 0,
+    position: 'fixed',
+    bottom: 72,
+    left: '50%',
+    transform: 'translateX(-50%)',
     zIndex: 1100,
-    width: 'max-content',
+    width: 'min(800px, calc(100vw - 24px))',
     minWidth: 'min(300px, calc(100vw - 24px))',
-    maxWidth: 'min(440px, calc(100vw - 24px))',
-    maxHeight: 460,
+    maxWidth: 'calc(100vw - 24px)',
+    maxHeight: 'calc(100dvh - 96px)',
     overflowY: 'auto',
     boxSizing: 'border-box',
     display: 'block',
@@ -161,10 +162,11 @@ test('portals the billing pill into the host token-usage row with matching pill 
   const sankeyNode = panel.children.find(child => typeof child?.type === 'function')
   const chart = sankeyNode.type(sankeyNode.props)
   assert.equal(chart.type, 'svg')
-  assert.equal(chart.props.viewBox, '0 0 520 132')
+  assert.equal(chart.props.viewBox, '0 0 760 340')
   const link = chart.children.find(child => child?.type === 'path')
   assert.match(link.props.d, /C/)
-  assert.equal(link.props.strokeLinecap, 'round')
+  assert.match(link.props.d, /Z$/)
+  assert.equal(link.props.fillOpacity, 0.28)
 
   const expandedChart = sankeyNode.type({
     rows: [
@@ -177,6 +179,9 @@ test('portals the billing pill into the host token-usage row with matching pill 
     t,
   })
   assert.equal(expandedChart.children.filter(child => child?.type === 'path').length, 6)
+  const ribbons = expandedChart.children.filter(child => child?.type === 'path')
+  assert.equal(new Set(ribbons.map(child => child.props.key)).size, ribbons.length)
+  assert.ok(ribbons.every(child => !/NaN|Infinity/.test(child.props.d)))
   assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 7)
   const labels = expandedChart.children
     .filter(child => child?.type === 'text')

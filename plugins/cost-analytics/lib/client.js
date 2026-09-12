@@ -281,7 +281,7 @@ window.__ModuleLoader__.load({
 				sessionCount: sessions.length,
 			};
 		}
-		const svgText = { fontSize: 10, fill: "var(--dsw-alias-label-secondary)" };
+		const svgText = { fontSize: 13, fontWeight: 500, fill: "var(--dsw-alias-label-secondary)" };
 		const sankeyStyle = { width: "100%", height: "auto", display: "block", overflow: "visible" };
 		/**
 		 * Three-column flow diagram laid out by the bundled d3-sankey algorithm.
@@ -291,10 +291,10 @@ window.__ModuleLoader__.load({
 		 */
 		function Sankey(props) {
 			const { rows, totalRequests, currency, tag, t } = props;
-			const width = 520;
-			const height = Math.max(132, rows.length * 48 + 24);
-			const leftX = 132;
-			const rightX = width - 132;
+			const width = 760;
+			const height = Math.max(340, rows.length * 64 + 48);
+			const leftX = 12;
+			const rightX = width - 12;
 			const graphRows = rows.map((row, index) => ({
 				row,
 				index,
@@ -314,8 +314,8 @@ window.__ModuleLoader__.load({
 			})));
 			const graph = d3Sankey.sankey()
 				.nodeId((node) => node.id)
-				.nodeWidth(12)
-				.nodePadding(14)
+				.nodeWidth(10)
+				.nodePadding(24)
 				.nodeSort((left, right) => left.order - right.order)
 				.nodeAlign((node) => node.id.startsWith("model:") ? 0 : node.id === "requests" ? 1 : 2)
 				.extent([[leftX, 18], [rightX, height - 8]])({ nodes, links });
@@ -325,19 +325,16 @@ window.__ModuleLoader__.load({
 				const color = MODEL_COLORS[item.index % MODEL_COLORS.length];
 				const midX = (link.source.x1 + link.target.x0) / 2;
 				children.push(react.createElement("path", {
-					key: `link-${item.index}`,
-					d: `M ${link.source.x1},${link.y0} C ${midX},${link.y0} ${midX},${link.y1} ${link.target.x0},${link.y1}`,
-					stroke: color,
-					strokeWidth: Math.max(1, link.width),
-					strokeOpacity: 0.38,
-					fill: "none",
-					strokeLinecap: "round",
+					key: `link-${link.index}`,
+					d: `M ${link.source.x1},${link.y0 - link.width / 2} C ${midX},${link.y0 - link.width / 2} ${midX},${link.y1 - link.width / 2} ${link.target.x0},${link.y1 - link.width / 2} L ${link.target.x0},${link.y1 + link.width / 2} C ${midX},${link.y1 + link.width / 2} ${midX},${link.y0 + link.width / 2} ${link.source.x1},${link.y0 + link.width / 2} Z`,
+					fill: color,
+					fillOpacity: 0.28,
 				}, react.createElement("title", null, `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })} · ${item.amount}`)));
 			}
 			for (const node of graph.nodes) {
 				const isRequests = node.id === "requests";
 				const item = isRequests ? null : graphRows[node.order];
-				const color = isRequests ? "var(--dsw-alias-bg-layer-3)" : MODEL_COLORS[node.order % MODEL_COLORS.length];
+				const color = isRequests ? MODEL_COLORS[0] : MODEL_COLORS[node.order % MODEL_COLORS.length];
 				const centerY = (node.y0 + node.y1) / 2;
 				children.push(react.createElement("rect", {
 					key: node.id,
@@ -345,18 +342,18 @@ window.__ModuleLoader__.load({
 					y: node.y0,
 					width: node.x1 - node.x0,
 					height: Math.max(1, node.y1 - node.y0),
-					rx: 3,
+					rx: 0,
 					fill: color,
 				}, react.createElement("title", null, isRequests
 					? node.label
 					: `${item.label} · ${t("modelRequests", { count: formatCount(item.row.usage.requests) })}`)));
 				children.push(react.createElement("text", {
 					key: `${node.id}-label`,
-					x: isRequests ? (node.x0 + node.x1) / 2 : node.side === "left" ? node.x0 - 8 : node.x1 + 8,
+					x: isRequests ? (node.x0 + node.x1) / 2 : node.side === "left" ? node.x1 + 8 : node.x0 - 8,
 					y: isRequests ? node.y0 - 6 : centerY + 3,
-					textAnchor: isRequests ? "middle" : node.side === "left" ? "end" : "start",
+					textAnchor: isRequests ? "middle" : node.side === "left" ? "start" : "end",
 					style: svgText,
-				}, truncate(node.label, 20)));
+				}, truncate(node.label, 30)));
 			}
 			return react.createElement("svg", {
 				viewBox: `0 0 ${width} ${height}`,
@@ -400,14 +397,15 @@ window.__ModuleLoader__.load({
 			background: "transparent",
 		};
 		const panelStyle = {
-			position: "absolute",
-			bottom: "calc(100% + 8px)",
-			left: 0,
+			position: "fixed",
+			bottom: 72,
+			left: "50%",
+			transform: "translateX(-50%)",
 			zIndex: 1100,
-			width: "max-content",
+			width: "min(800px, calc(100vw - 24px))",
 			minWidth: "min(300px, calc(100vw - 24px))",
-			maxWidth: "min(440px, calc(100vw - 24px))",
-			maxHeight: 460,
+			maxWidth: "calc(100vw - 24px)",
+			maxHeight: "calc(100dvh - 96px)",
 			overflowY: "auto",
 			boxSizing: "border-box",
 			display: "block",
