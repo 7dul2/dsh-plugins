@@ -44,8 +44,8 @@ window.__ModuleLoader__.load({
 		];
 		const zh = {
 			nav: "消耗统计",
-			chartTokens: "渠道 Token 消耗", chartCost: "渠道费用", chartUnknown: "未知",
-			chartScale: "各列独立按占比缩放；未知价格不绘制费用连线。",
+			chartChannels: "渠道 Token", chartTokens: "模型 Token", chartCost: "开销", chartUnknown: "未知",
+			chartScale: "渠道按提供者汇总，模型按模型 ID 汇总；各列独立按占比缩放。",
 			dialogTitle: "本次会话计费",
 			pillTitle: "{cost} · {requests} 次请求",
 			sankeyRequests: "{count} 次请求",
@@ -76,8 +76,8 @@ window.__ModuleLoader__.load({
 		};
 		const en = {
 			nav: "Cost analytics",
-			chartTokens: "Tokens by provider", chartCost: "Cost by provider", chartUnknown: "Unknown",
-			chartScale: "Each column uses its own share scale; unknown prices have no cost ribbon.",
+			chartChannels: "Channel tokens", chartTokens: "Model tokens", chartCost: "Cost", chartUnknown: "Unknown",
+			chartScale: "Channels aggregate by provider and models by model ID; each column uses its own share scale.",
 			dialogTitle: "Session billing",
 			pillTitle: "{cost} · {requests} requests",
 			sankeyRequests: "{count} requests",
@@ -293,8 +293,45 @@ window.__ModuleLoader__.load({
 		const svgText = { fontSize: 13, fontWeight: 500, fill: "var(--dsw-alias-label-secondary)" };
 		const sankeyStyle = { width: "100%", height: "auto", display: "block", overflow: "visible" };
 		/**
-		 * Each metric has its own linear scale; ribbons connect model shares.
-		 * Zero and unknown costs have labels but no cost area.
+		 * Lay out the three independent metric columns used by the chart.
+		 * Ribbons connect provider totals to model totals, then model totals to
+		 * provider/model costs; zero and unknown costs retain labels but no area.
+		 * @param weights - one non-negative value for each node in the column.
+		 * @param x - horizontal node position.
+		 * @param top - first usable y coordinate.
+		 * @param bottom - last usable y coordinate.
+		 * @param gap - minimum spacing between positive nodes.
+		 * @returns positioned nodes with zero-height entries for missing values.
+		 */
+		function layoutColumn(weights, x, top, bottom, gap) {
+			const positive = weights.map((value, index) => ({ value, index })).filter(item => item.value > 0);
+			const missing = weights.map((value, index) => ({ value, index })).filter(item => item.value <= 0);
+			const result = new Array(weights.length);
+			const limit = bottom - missing.length * gap;
+			if (positive.length) {
+				const nodes = positive.flatMap(item => [
+					{ id: 'left:' + item.index, order: item.index },
+					{ id: 'right:' + item.index, order: item.index },
+				]);
+				const links = positive.map(item => ({
+					source: 'left:' + item.index, target: 'right:' + item.index, value: item.value,
+				}));
+				const graph = d3Sankey.sankey().nodeId(node => node.id).nodeWidth(10)
+					.nodePadding(gap).nodeSort((a, b) => a.order - b.order)
+					.extent([[0, top], [40, limit]])({ nodes, links });
+				for (const node of graph.nodes.filter(node => node.id.startsWith('left:'))) {
+					result[node.order] = { x, y0: node.y0, y1: node.y1 };
+				}
+			}
+			missing.forEach((item, index) => {
+				const y = positive.length ? limit + gap * (index + 1) : top + gap * index;
+				result[item.index] = { x, y0: y, y1: y };
+			});
+			return result;
+		}
+		/**
+		 * Render channel Token → model Token → cost as three independently scaled
+		 * columns. A route is the provider/model row emitted by the host rollup.
 		 * @param props - priced model rows and locale formatting.
 		 */
 		function Sankey({ rows, currency, tag, t }) {
@@ -304,106 +341,101 @@ window.__ModuleLoader__.load({
 			const bottom = height - 32;
 			const gap = 42;
 			const xs = [12, 375, 738];
-			const groups = [];
-			const groupByModel = new Map();
-			const groupIndex = rows.map(row => {
-				const modelId = row.modelId || row.model;
-				if (!groupByModel.has(modelId)) {
-					groupByModel.set(modelId, groups.length);
-					groups.push({ modelId, requests: 0 });
+			const channels = [];
+			const channelByProvider = new Map();
+			const models = [];
+			const modelById = new Map();
+			const routes = rows.map(row => {
+				const usage = row.usage || {};
+				const provider = row.provider || UNKNOWN_MODEL;
+				const modelId = row.modelId || row.model || UNKNOWN_MODEL;
+				const tokens = (usage.input || 0) + (usage.cacheRead || 0) + (usage.cacheWrite || 0) + (usage.output || 0);
+				let channelIndex = channelByProvider.get(provider);
+				if (channelIndex === undefined) {
+					channelIndex = channels.length;
+					channelByProvider.set(provider, channelIndex);
+					channels.push({ provider, tokens: 0 });
 				}
-				const index = groupByModel.get(modelId);
-				groups[index].requests += row.usage.requests || 0;
-				return index;
-			});
-			const values = [
-				groups.map(group => group.requests),
-				rows.map(row => (row.usage.input || 0) + (row.usage.cacheRead || 0) + (row.usage.cacheWrite || 0) + (row.usage.output || 0)),
-				rows.map(row => row.cost ?? 0),
-			];
-			const columns = values.map((weights, column) => {
-				const positive = weights.map((value, index) => ({ value, index })).filter(item => item.value > 0);
-				const missing = weights.map((value, index) => ({ value, index })).filter(item => item.value <= 0);
-				const result = new Array(weights.length);
-				const limit = bottom - missing.length * gap;
-				if (positive.length) {
-					const nodes = positive.flatMap(item => [
-						{ id: 'left:' + item.index, order: item.index },
-						{ id: 'right:' + item.index, order: item.index },
-					]);
-					const links = positive.map(item => ({
-						source: 'left:' + item.index, target: 'right:' + item.index, value: item.value,
-					}));
-					const graph = d3Sankey.sankey().nodeId(node => node.id).nodeWidth(10)
-						.nodePadding(gap).nodeSort((a, b) => a.order - b.order)
-						.extent([[0, top], [40, limit]])({ nodes, links });
-					for (const node of graph.nodes.filter(node => node.id.startsWith('left:'))) {
-						result[node.order] = { x: xs[column], y0: node.y0, y1: node.y1 };
-					}
+				channels[channelIndex].tokens += tokens;
+				let modelIndex = modelById.get(modelId);
+				if (modelIndex === undefined) {
+					modelIndex = models.length;
+					modelById.set(modelId, modelIndex);
+					models.push({ modelId, tokens: 0 });
 				}
-				missing.forEach((item, index) => {
-					const y = positive.length ? limit + gap * (index + 1) : top + gap * index;
-					result[item.index] = { x: xs[column], y0: y, y1: y };
-				});
-				return result;
+				models[modelIndex].tokens += tokens;
+				return {
+					row, provider, modelId, tokens, channelIndex, modelIndex,
+					cost: typeof row.cost === 'number' && Number.isFinite(row.cost) && row.cost > 0 ? row.cost : 0,
+				};
 			});
+			const values = [channels.map(channel => channel.tokens), models.map(model => model.tokens), routes.map(route => route.cost)];
+			const columns = values.map((weights, column) => layoutColumn(weights, xs[column], top, bottom, gap));
 			const children = [];
-			const titles = [t('requestCount'), t('chartTokens'), t('chartCost')];
+			const titles = [t('chartChannels'), t('chartTokens'), t('chartCost')];
 			titles.forEach((label, column) => children.push(react.createElement('text', {
 				key: 'heading-' + column, x: xs[column], y: 20,
 				textAnchor: column === 2 ? 'end' : 'start', style: svgText,
 			}, label)));
-			const offsets = groups.map(() => 0);
-			for (let column = 0; column < 2; column++) {
-				rows.forEach((row, index) => {
-					if (column === 1 && row.cost === null) return;
-					let source = columns[column][index];
-					if (column === 0) {
-						const group = groupIndex[index];
-						const node = columns[0][group];
-						const share = groups[group].requests ? (row.usage.requests || 0) / groups[group].requests : 0;
-						const y0 = node.y0 + offsets[group];
-						const span = (node.y1 - node.y0) * share;
-						source = { x: node.x, y0, y1: y0 + span };
-						offsets[group] += span;
-					}
-					const target = columns[column + 1][index];
-					if (source.y0 === source.y1 || target.y0 === target.y1) return;
-					const x0 = source.x + 10;
-					const x1 = target.x;
-					const mid = (x0 + x1) / 2;
-					children.push(react.createElement('path', {
-						key: 'link-' + column + '-' + index,
-						d: `M ${x0},${source.y0} C ${mid},${source.y0} ${mid},${target.y0} ${x1},${target.y0} L ${x1},${target.y1} C ${mid},${target.y1} ${mid},${source.y1} ${x0},${source.y1} Z`,
-						fill: MODEL_COLORS[groupIndex[index] % MODEL_COLORS.length], fillOpacity: 0.28,
-					}, react.createElement('title', null, row.model)));
-				});
+			const appendLink = (key, source, target, sourceY0, sourceY1, targetY0, targetY1, color, name) => {
+				if (sourceY0 === sourceY1 || targetY0 === targetY1) return;
+				const x0 = source.x + 10;
+				const x1 = target.x;
+				const mid = (x0 + x1) / 2;
+				children.push(react.createElement('path', {
+					key, d: `M ${x0},${sourceY0} C ${mid},${sourceY0} ${mid},${targetY0} ${x1},${targetY0} L ${x1},${targetY1} C ${mid},${targetY1} ${mid},${sourceY1} ${x0},${sourceY1} Z`,
+					fill: color, fillOpacity: 0.28,
+				}, react.createElement('title', null, name)));
+			};
+			const channelOffsets = channels.map(() => 0);
+			const modelTargetOffsets = models.map(() => 0);
+			for (const [index, route] of routes.entries()) {
+				if (route.tokens <= 0) continue;
+				const source = columns[0][route.channelIndex];
+				const target = columns[1][route.modelIndex];
+				const sourceTotal = channels[route.channelIndex].tokens;
+				const targetTotal = models[route.modelIndex].tokens;
+				const sourceSpan = (source.y1 - source.y0) * route.tokens / sourceTotal;
+				const targetSpan = (target.y1 - target.y0) * route.tokens / targetTotal;
+				const sourceY0 = source.y0 + channelOffsets[route.channelIndex];
+				const targetY0 = target.y0 + modelTargetOffsets[route.modelIndex];
+				channelOffsets[route.channelIndex] += sourceSpan;
+				modelTargetOffsets[route.modelIndex] += targetSpan;
+				appendLink('link-0-' + index, source, target, sourceY0, sourceY0 + sourceSpan, targetY0, targetY0 + targetSpan,
+					MODEL_COLORS[route.modelIndex % MODEL_COLORS.length], route.provider + '/' + route.modelId);
 			}
-			columns.forEach((nodes, column) => nodes.forEach((node, index) => {
-				const row = rows[index];
-				const modelId = column === 0 ? groups[index].modelId : row.modelId || row.model;
-				const label = column === 0 ? t('modelRequests', { count: formatCount(values[0][index]) })
-					: column === 1 ? t('tokenCount', { count: formatTokens(values[1][index]) })
-					: row.cost === null ? t('chartUnknown') : formatMoney(row.cost, currency, tag);
-				const name = column === 0 ? modelId : (row.provider || UNKNOWN_MODEL) + '/' + modelId;
-				const colorIndex = column === 0 ? index : groupIndex[index];
+			const modelSourceOffsets = models.map(() => 0);
+			for (const [index, route] of routes.entries()) {
+				if (route.tokens <= 0) continue;
+				const source = columns[1][route.modelIndex];
+				const target = columns[2][index];
+				const sourceTotal = models[route.modelIndex].tokens;
+				const sourceSpan = (source.y1 - source.y0) * route.tokens / sourceTotal;
+				const sourceY0 = source.y0 + modelSourceOffsets[route.modelIndex];
+				modelSourceOffsets[route.modelIndex] += sourceSpan;
+				appendLink('link-1-' + index, source, target, sourceY0, sourceY0 + sourceSpan, target.y0, target.y1,
+					MODEL_COLORS[route.modelIndex % MODEL_COLORS.length], route.provider + '/' + route.modelId);
+			}
+			const nodeColumns = [
+				channels.map((channel, index) => ({ name: channel.provider, label: t('tokenCount', { count: formatTokens(channel.tokens) }), colorIndex: index })),
+				models.map((model, index) => ({ name: model.modelId, label: t('tokenCount', { count: formatTokens(model.tokens) }), colorIndex: index })),
+				routes.map(route => ({ name: route.provider + '/' + route.modelId, label: route.row.cost === null ? t('chartUnknown') : formatMoney(route.row.cost, currency, tag), colorIndex: route.modelIndex })),
+			];
+			nodeColumns.forEach((nodes, column) => nodes.forEach((item, index) => {
+				const node = columns[column][index];
 				children.push(react.createElement('rect', {
 					key: 'node-' + column + '-' + index,
 					x: node.x, y: node.y0, width: 10, height: node.y1 - node.y0,
-					fill: MODEL_COLORS[colorIndex % MODEL_COLORS.length],
-				}, react.createElement('title', null, name + ' · ' + label)));
+					fill: MODEL_COLORS[item.colorIndex % MODEL_COLORS.length],
+				}, react.createElement('title', null, item.name + ' · ' + item.label)));
 				const x = column === 2 ? node.x - 8 : node.x + 18;
 				const y = (node.y0 + node.y1) / 2;
 				children.push(react.createElement('text', {
-					key: 'label-' + column + '-' + index, x,
-					y: y + 4, textAnchor: column === 2 ? 'end' : 'start', style: svgText,
-				}, column === 1
-					? [react.createElement('tspan', { key: 'route', x, dy: -6 }, truncate(name, 30)),
-						react.createElement('tspan', { key: 'tokens', x, dy: 18 }, label)]
-					: column === 0 ? truncate(name, 22) + ' · ' + label
-						: [react.createElement('tspan', { key: 'route', x, dy: -6 }, truncate(name, 30)),
-							react.createElement('tspan', { key: 'cost', x, dy: 18 }, label)],
-				react.createElement('title', null, name + ' · ' + label)));
+					key: 'label-' + column + '-' + index, x, y: y + 4,
+					textAnchor: column === 2 ? 'end' : 'start', style: svgText,
+				}, [react.createElement('tspan', { key: 'name', x, dy: -6 }, truncate(item.name, 30)),
+					react.createElement('tspan', { key: 'value', x, dy: 18 }, item.label)],
+				react.createElement('title', null, item.name + ' · ' + item.label)));
 			}));
 			children.push(react.createElement('text', {
 				key: 'scale-note', x: 12, y: height - 6, style: { ...svgText, fontSize: 11 },

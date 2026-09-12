@@ -194,7 +194,10 @@ test('portals the billing pill into the host token-usage row with matching pill 
   const ribbons = expandedChart.children.filter(child => child?.type === 'path')
   assert.equal(new Set(ribbons.map(child => child.props.key)).size, ribbons.length)
   assert.ok(ribbons.every(child => !/NaN|Infinity/.test(child.props.d)))
-  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 9)
+  assert.equal(expandedChart.children.filter(child => child?.type === 'rect').length, 7)
+  assert.deepEqual(expandedChart.children
+    .filter(child => child?.props?.key?.startsWith('heading-'))
+    .map(child => child.children[0]), ['渠道 Token', '模型 Token', '开销'])
   const labels = expandedChart.children
     .filter(child => child?.type === 'text')
     .flatMap(child => Array.isArray(child.children[0])
@@ -204,16 +207,16 @@ test('portals the billing pill into the host token-usage row with matching pill 
   assert.ok(labels.includes('未知'))
   const proportional = sankeyNode.type({
     rows: [
-      { model: 'A', cost: 1, usage: { requests: 3, input: 10 } },
-      { model: 'B', cost: 4, usage: { requests: 1, input: 90 } },
-      { model: 'Free', cost: 0, usage: { requests: 0, input: 0 } },
+      { model: 'a/A', modelId: 'A', provider: 'channel-a', cost: 1, usage: { requests: 3, input: 10 } },
+      { model: 'b/B', modelId: 'B', provider: 'channel-b', cost: 4, usage: { requests: 1, input: 90 } },
+      { model: 'c/A', modelId: 'A', provider: 'channel-c', cost: 0, usage: { requests: 0, input: 20 } },
     ],
     currency: 'CNY', tag: 'zh-CN', t,
   })
   const height = key => proportional.children.find(child => child.props?.key === key).props.height
-  assert.ok(Math.abs(height('node-0-0') / height('node-0-1') - 3) < 1e-8)
-  assert.ok(Math.abs(height('node-1-0') / height('node-1-1') - 1 / 9) < 1e-8)
-  assert.ok(Math.abs(height('node-2-0') / height('node-2-1') - 1 / 4) < 1e-8)
+  assert.equal(proportional.children.filter(child => child?.type === 'rect').length, 8)
+  assert.ok(Math.abs(height('node-0-0') / height('node-0-1') - 1 / 9) < 1e-8)
+  assert.ok(Math.abs(height('node-1-0') / height('node-1-1') - 30 / 90) < 1e-8)
   assert.equal(height('node-2-2'), 0)
   const split = sankeyNode.type({
     rows: [
@@ -223,8 +226,10 @@ test('portals the billing pill into the host token-usage row with matching pill 
   })
   const splitNodes = split.children.filter(child => child.type === 'rect')
   assert.equal(splitNodes.length, 5)
-  assert.equal(splitNodes.filter(child => child.props.key.startsWith('node-0-')).length, 1)
-  assert.ok(split.children.some(child => child.children?.[0] === 'flash · 4 次'))
+  assert.equal(splitNodes.filter(child => child.props.key.startsWith('node-0-')).length, 2)
+  assert.equal(splitNodes.filter(child => child.props.key.startsWith('node-1-')).length, 1)
+  assert.equal(splitNodes.filter(child => child.props.key.startsWith('node-2-')).length, 2)
+  assert.ok(split.children.some(child => child.children?.[0]?.[0]?.children?.[0] === 'flash'))
   const leftLinks = split.children.filter(child => child.props?.key?.startsWith('link-0-'))
   assert.equal(leftLinks[0].props.fill, leftLinks[1].props.fill)
   assert.equal(leftLinks.length, 2)

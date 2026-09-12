@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-cost-analytics",
-  "description": "Web billing views over the host-owned cost-analytics settings rollup: a bundled d3-sankey composer-dock chart (model requests -> provider token usage -> provider cost) beside the token-usage pills, plus a settings section with per-project/session consumption",
+  "description": "Web billing views over the host-owned cost-analytics settings rollup: a bundled d3-sankey composer-dock chart (channel tokens -> model tokens -> cost) beside the token-usage pills, plus a settings section with per-project/session consumption",
   "version": "0.1.5-rc.1",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
         "@deepseek-ai/dsh-client-locale"
       ],
       "displayName": "费用分析",
-      "displayDescription": "基于 host 成本汇总的计费视图：调用次数→Token 消耗→费用消耗桑基图与逐项目/会话消耗"
+      "displayDescription": "基于 host 成本汇总的计费视图：渠道 Token→模型 Token→开销桑基图与逐项目/会话消耗"
     }
   },
   "files": [
